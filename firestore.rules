@@ -68,7 +68,7 @@ service cloud.firestore {
       // Everyday operations (call next / recall / mark done) — no PIN needed,
       // same protection level (none) as your original callNext/markDone.
       allow update: if request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['status','ticket','service','transactionType','ticketId','recallCount','updatedAt']);
+        .hasOnly(['status','ticket','service','transactionType','priority','priorityReason','ticketId','recallCount','updatedAt']);
       // Adding a NEW counter requires a valid prior counterRequests doc for this exact counterId.
       allow create: if
         exists(/databases/$(database)/documents/counterRequests/$(request.resource.data.requestId)) &&

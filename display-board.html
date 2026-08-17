@@ -111,6 +111,7 @@
         <img class="carousel-img active" src="https://i.imgur.com/ZqBuNRs.jpeg" alt="Bawal ang Red Tape">
         <img class="carousel-img" src="https://i.imgur.com/He2wa9j.jpeg" alt="Citizen's Charter / CSM Form">
         <img class="carousel-img" src="https://i.imgur.com/Y31drvA.png" alt="PRC Digital Kiosk">
+        <img class="carousel-img" src="https://i.imgur.com/MaTWeQS.jpeg" alt="No Noon Break Policy">
         <div class="carousel-dots" id="carouselDots"></div>
       </div>
     </div>
@@ -143,8 +144,6 @@
       window.speechSynthesis.speak(msg);
     };
 
-    function isPriorityService(service){ return (service || "").toLowerCase().includes("priority"); }
-
     function playDingSound(callback) {
       try {
         const audio = new Audio("https://upload.wikimedia.org/wikipedia/commons/3/34/Sound_Effect_-_Door_Bell.ogg");
@@ -172,15 +171,16 @@
       const tbody = document.getElementById('display');
       tbody.innerHTML = "";
       rows.forEach(row => {
-        const { counterId: counter, status, ticket, service, transactionType, recallCount } = row;
-        const priority = isPriorityService(service);
+        const { counterId: counter, status, ticket, service, transactionType, priority, priorityReason, recallCount } = row;
         const transferred = (ticket || '').startsWith('T-');
         const tr = document.createElement('tr');
         if (priority && (status || '').toLowerCase() === 'now serving') tr.classList.add('priority-row');
 
         let serviceCell = service || '-';
-        if (transactionType) {
-          serviceCell = `${service || ''}<br><span class="type-badge ${priority ? 'priority' : ''}">${priority ? '⭐ ' : ''}${transactionType}</span>`;
+        if (priority) {
+          serviceCell = `${service || ''}<br><span class="type-badge priority">⭐ Priority${priorityReason ? ' — ' + priorityReason : ''}</span>`;
+        } else if (transactionType) {
+          serviceCell = `${service || ''}<br><span class="type-badge">${transactionType}</span>`;
         }
         if (transferred) {
           serviceCell = `${service || ''}<br><span class="type-badge transferred">🔄 Transferred</span>`;

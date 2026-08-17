@@ -34,11 +34,14 @@ export const SERVICES = [
   { code: 'D',   name: 'Duplicate ID' },
   { code: 'COR', name: 'Certificate of Registration' },
   { code: 'SV',  name: 'Stateboard Verification' },
-  { code: 'PR',  name: 'Priority Transaction' },
   { code: 'RES', name: 'Real Estate Salesperson' },
   { code: 'MED', name: 'Medical Representative' },
   { code: 'RDA', name: 'Accreditation' }
 ];
+
+// Standard reasons a client can be marked priority (RA 10754 / Magna Carta
+// categories). Optional context stored alongside the priority flag.
+export const PRIORITY_REASONS = ['Senior Citizen', 'PWD', 'Pregnant Woman', 'Solo Parent', 'Other'];
 const CODE_BY_NAME = Object.fromEntries(SERVICES.map(s => [s.name, s.code]));
 
 // ================= Manila-timezone date helpers =================
@@ -97,14 +100,17 @@ export async function cleanupStaleCounters() {
       const ticketSnap = await getDoc(doc(db, 'queue', data.ticketId));
       const ticketCycle = ticketSnap.exists() ? ticketSnap.data().cycle : null;
       if (ticketCycle !== cycle) {
-        await updateDoc(c.ref, { status: 'Idle', ticket: '', service: '', transactionType: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp() });
+        await updateDoc(c.ref, { status: 'Idle', ticket: '', service: '', transactionType: '', priority: false, priorityReason: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp() });
       }
     } catch (e) { /* best-effort — skip on error */ }
   }
 }
 
 // ================= Generate a ticket (kiosk) =================
-export async function addQueueTicket(serviceName, transactionType) {
+// isPriority/priorityReason: the client's actual service is still `serviceName`
+// (e.g. "Renewal") — priority is a flag on top of it, not a separate service.
+// queueRank drives ordering in callNext: 0=priority, 1=transferred, 2=normal.
+export async function addQueueTicket(serviceName, isPriority, priorityReason) {
   const code = CODE_BY_NAME[serviceName];
   if (!code) throw new Error('Invalid service.');
   const cycle = await getActiveCycle();
@@ -116,23 +122,27 @@ export async function addQueueTicket(serviceName, transactionType) {
     const ticket = `${code}-${String(next).padStart(3, '0')}`;
     const queueRef = doc(collection(db, 'queue'));
     tx.set(queueRef, {
-      ticket, service: serviceName, transactionType: transactionType || '',
+      ticket, service: serviceName, transactionType: '',
+      priority: !!isPriority, priorityReason: isPriority ? (priorityReason || '') : '',
       status: 'Waiting', counter: '', cycle, transferred: false,
+      queueRank: isPriority ? 0 : 2,
       createdAt: serverTimestamp()
     });
-    return { ticket, service: serviceName, transactionType: transactionType || '' };
+    return { ticket, service: serviceName, priority: !!isPriority, priorityReason: isPriority ? (priorityReason || '') : '' };
   });
 }
 
 // ================= Call next (staff) =================
-// Transferred tickets (T-XXX) always come first for their target service —
-// orderBy(transferred desc) puts transferred:true ahead of transferred:false,
-// createdAt asc is the tiebreaker within each group.
+// Ordering within any service's queue: priority tickets first (queueRank 0),
+// then transferred T-XXX tickets (queueRank 1), then everyone else (queueRank 2).
+// Staff never need to separately select "Priority Transaction" — calling next
+// for e.g. "Renewal" automatically serves a priority Renewal client first,
+// since the priority flag lives on the real service now, not a fake one.
 export async function callNext(counterId, serviceFilter) {
   const cycle = await getActiveCycle();
   const clauses = [collection(db, 'queue'), where('status', '==', 'Waiting'), where('cycle', '==', cycle)];
   if (serviceFilter) clauses.push(where('service', '==', serviceFilter));
-  clauses.push(orderBy('transferred', 'desc'), orderBy('createdAt', 'asc'), limit(15));
+  clauses.push(orderBy('queueRank', 'asc'), orderBy('createdAt', 'asc'), limit(15));
   const snap = await getDocs(query(...clauses));
 
   for (const candidate of snap.docs) {
@@ -144,10 +154,14 @@ export async function callNext(counterId, serviceFilter) {
         tx.update(candidate.ref, { status: 'Now Serving', counter: counterId, calledAt: serverTimestamp() });
         tx.set(doc(db, 'counters', counterId), {
           status: 'Now Serving', ticket: data.ticket, service: data.service,
-          transactionType: data.transactionType || '', ticketId: candidate.id,
+          transactionType: data.transactionType || '', priority: !!data.priority, priorityReason: data.priorityReason || '', ticketId: candidate.id,
           recallCount: 0, updatedAt: serverTimestamp()
         }, { merge: true });
-        return { ticket: data.ticket, service: data.service, transactionType: data.transactionType || '', transferred: !!data.transferred, counter: counterId };
+        return {
+          ticket: data.ticket, service: data.service, transactionType: data.transactionType || '',
+          priority: !!data.priority, priorityReason: data.priorityReason || '', transferred: !!data.transferred,
+          counter: counterId
+        };
       });
     } catch (e) { /* another counter grabbed it first — try the next candidate */ }
   }
@@ -189,14 +203,15 @@ export async function transferClient(counterId, targetService) {
     const ticket = `T-${String(next).padStart(3, '0')}`;
     const queueRef = doc(collection(db, 'queue'));
     tx.set(queueRef, {
-      ticket, service: targetService, transactionType: '', status: 'Waiting', counter: '',
-      cycle, transferred: true, transferredFrom: counterId, createdAt: serverTimestamp()
+      ticket, service: targetService, transactionType: '', priority: false, priorityReason: '',
+      status: 'Waiting', counter: '', cycle, transferred: true, transferredFrom: counterId, queueRank: 1,
+      createdAt: serverTimestamp()
     });
     return ticket;
   });
 
   await setDoc(counterRef, {
-    status: 'Idle', ticket: '', service: '', transactionType: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp()
+    status: 'Idle', ticket: '', service: '', transactionType: '', priority: false, priorityReason: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp()
   }, { merge: true });
 
   return { newTicket, targetService, fromCounter: counterId };
@@ -218,7 +233,7 @@ export async function markDone(counterId) {
     message = `${c.ticket} marked as done.`;
   }
   await setDoc(counterRef, {
-    status: 'Idle', ticket: '', service: '', transactionType: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp()
+    status: 'Idle', ticket: '', service: '', transactionType: '', priority: false, priorityReason: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp()
   }, { merge: true });
   return { message };
 }
@@ -243,7 +258,7 @@ export async function resetQueueSystem(pin, actor) {
   });
   const counters = await getDocs(collection(db, 'counters'));
   await Promise.all(counters.docs.map(c => updateDoc(c.ref, {
-    status: 'Idle', ticket: '', service: '', transactionType: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp()
+    status: 'Idle', ticket: '', service: '', transactionType: '', priority: false, priorityReason: '', ticketId: '', recallCount: 0, updatedAt: serverTimestamp()
   })));
   await addDoc(collection(db, 'adminLogs'), { action: 'Manual Reset', actor: actor || 'Unknown', details: '', timestamp: serverTimestamp() });
 }
@@ -254,7 +269,7 @@ export async function addCounter(counterId, pin, actor) {
   if (existing.exists()) throw new Error('Counter already exists.');
   const reqId = await verifyPin(pin, actor, 'counterRequests', { counterId });
   await setDoc(doc(db, 'counters', counterId), {
-    status: 'Idle', ticket: '', service: '', transactionType: '', ticketId: '', recallCount: 0,
+    status: 'Idle', ticket: '', service: '', transactionType: '', priority: false, priorityReason: '', ticketId: '', recallCount: 0,
     requestId: reqId, updatedAt: serverTimestamp()
   });
   await addDoc(collection(db, 'adminLogs'), { action: 'Add Counter', actor: actor || 'Unknown', details: counterId, timestamp: serverTimestamp() });
@@ -314,6 +329,8 @@ export async function listenWaitingQueue(serviceFilter, cb) {
       ticket: d.data().ticket,
       service: d.data().service,
       transactionType: d.data().transactionType || '',
+      priority: !!d.data().priority,
+      priorityReason: d.data().priorityReason || '',
       timestamp: d.data().createdAt ? d.data().createdAt.toDate().toISOString() : ''
     })));
   }, reportListenerError);
@@ -341,6 +358,8 @@ export async function getCompletedTicketsInRange(startDateStr, endDateStr) {
       ticket: v.ticket || '',
       service: v.service || '',
       transactionType: v.transactionType || '',
+      priority: !!v.priority,
+      priorityReason: v.priorityReason || '',
       counter: v.counter || '',
       transferred: !!v.transferred,
       createdAt: v.createdAt ? v.createdAt.toDate() : null,

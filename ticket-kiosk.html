@@ -49,6 +49,8 @@
     .btn-primary:active { transform:scale(0.96); }
     .btn-primary:disabled { opacity:0.6; transform:none; box-shadow:none; pointer-events:none; }
     .status-message { font-size:0.9rem; min-height:1.6rem; color:var(--muted); text-align:center; padding:4px 0; }
+    .priority-checkbox-wrap { display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:var(--r-md); background:var(--priority-bg); border:1px solid #f3c6c2; cursor:pointer; font-size:0.85rem; color:var(--priority-red); font-weight:600; }
+    .priority-checkbox-wrap input { width:18px; height:18px; accent-color:var(--priority-red); cursor:pointer; margin:0; flex-shrink:0; }
     .priority-sub { display:none; animation:fadeSlide 0.2s ease; }
     .priority-sub.visible { display:block; }
     @keyframes fadeSlide { 0% { opacity:0; transform:translateY(-6px); } 100% { opacity:1; transform:translateY(0); } }
@@ -123,22 +125,23 @@
         <label for="service">Service</label>
         <select id="service"></select>
       </div>
+
+      <label class="priority-checkbox-wrap">
+        <input type="checkbox" id="priorityCheckbox">
+        <span>⭐ This is a priority transaction (Senior Citizen / PWD / Pregnant / Solo Parent)</span>
+      </label>
+
       <div class="control-group priority-sub" id="prioritySub">
-        <label for="priorityType">Priority Transaction Type</label>
-        <select id="priorityType">
-          <option value="Certification">Certification</option>
-          <option value="Authentication">Authentication</option>
-          <option value="Exam Application">Exam Application</option>
-          <option value="Renewal">Renewal</option>
-          <option value="Initial Registration">Initial Registration</option>
-          <option value="Duplicate ID">Duplicate ID</option>
-          <option value="Certificate of Registration">Certificate of Registration</option>
-          <option value="Stateboard Verification">Stateboard Verification</option>
-          <option value="Real Estate Salesperson">Real Estate Salesperson</option>
-          <option value="Medical Representative">Medical Representative</option>
-          <option value="Accreditation">Accreditation</option>
+        <label for="priorityReason">Priority Reason</label>
+        <select id="priorityReason">
+          <option value="Senior Citizen">Senior Citizen</option>
+          <option value="PWD">PWD</option>
+          <option value="Pregnant Woman">Pregnant Woman</option>
+          <option value="Solo Parent">Solo Parent</option>
+          <option value="Other">Other</option>
         </select>
       </div>
+
       <button id="generateBtn" class="btn-primary"><span>➕</span> Generate ticket</button>
       <div id="statusMessage" class="status-message"></div>
     </div>
@@ -185,8 +188,9 @@
     const logoutBtn = document.getElementById('logoutBtn');
     const loginError = document.getElementById('loginError');
     const serviceSelect = document.getElementById('service');
+    const priorityCheckbox = document.getElementById('priorityCheckbox');
     const prioritySub = document.getElementById('prioritySub');
-    const priorityTypeSelect = document.getElementById('priorityType');
+    const priorityReasonSelect = document.getElementById('priorityReason');
     const generateBtn = document.getElementById('generateBtn');
     const ticketStage = document.getElementById('ticketStage');
     const ticketDisplay = document.getElementById('ticketDisplay');
@@ -195,7 +199,7 @@
     const logoutModal = document.getElementById('logoutModal');
     const confirmText = document.getElementById('confirmText');
 
-    let selectedService = "", selectedPriorityType = "";
+    let selectedService = "", selectedIsPriority = false, selectedPriorityReason = "";
 
     function setError(msg) { loginError.textContent = msg || ""; }
     function clearLoginFields() { usernameInput.value = ""; passwordInput.value = ""; usernameInput.focus(); setError(""); }
@@ -205,13 +209,13 @@
       return `${now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })} · ${now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true })}`;
     }
 
-    function renderTicket(ticketNumber, serviceName, priorityType) {
-      ticketStage.classList.toggle('priority', !!priorityType);
+    function renderTicket(ticketNumber, serviceName, isPriority, priorityReason) {
+      ticketStage.classList.toggle('priority', !!isPriority);
       if (!ticketNumber) {
         ticketDisplay.innerHTML = `<span>🪪</span><span style="font-size:0.9rem; opacity:0.6;">your ticket appears here</span>`;
         return;
       }
-      const typeHtml = priorityType ? `<div class="ticket-type-badge">⭐ ${priorityType}</div>` : '';
+      const typeHtml = isPriority ? `<div class="ticket-type-badge">⭐ Priority${priorityReason ? ' — ' + priorityReason : ''}</div>` : '';
       const serviceHtml = serviceName ? `<div class="ticket-service">${serviceName}</div>` : '';
       ticketDisplay.innerHTML = `
         <div class="ticket-number">${ticketNumber}</div>
@@ -249,24 +253,19 @@
         opt.value = svc.name; opt.textContent = `${svc.code} - ${svc.name}`;
         serviceSelect.appendChild(opt);
       });
-      checkPriorityVisibility();
     }
-    function checkPriorityVisibility() {
-      prioritySub.classList.toggle('visible', serviceSelect.value === 'Priority Transaction');
-    }
-    serviceSelect.addEventListener('change', checkPriorityVisibility);
+    priorityCheckbox.addEventListener('change', () => {
+      prioritySub.classList.toggle('visible', priorityCheckbox.checked);
+    });
 
     generateBtn.addEventListener('click', () => {
       const service = serviceSelect.value;
       if (!service) { setStatus("⚠️ Please select a service"); return; }
-      let priorityType = '';
-      if (service === 'Priority Transaction') {
-        priorityType = priorityTypeSelect.value;
-        if (!priorityType) { setStatus("⚠️ Please select a Priority Transaction Type"); return; }
-      }
-      selectedService = service; selectedPriorityType = priorityType;
+      const isPriority = priorityCheckbox.checked;
+      const priorityReason = isPriority ? priorityReasonSelect.value : '';
+      selectedService = service; selectedIsPriority = isPriority; selectedPriorityReason = priorityReason;
       let msg = `Generate ticket for "${service}"`;
-      if (priorityType) msg += ` (⭐ ${priorityType})`;
+      if (isPriority) msg += ` (⭐ Priority — ${priorityReason})`;
       confirmText.textContent = msg + '?';
       confirmModal.classList.add('show');
     });
@@ -275,26 +274,30 @@
     document.getElementById('confirmYesBtn').addEventListener('click', async () => {
       confirmModal.classList.remove('show');
       if (!selectedService) return;
-      const service = selectedService, priorityType = selectedPriorityType;
+      const service = selectedService, isPriority = selectedIsPriority, priorityReason = selectedPriorityReason;
 
       generateBtn.disabled = true;
       generateBtn.innerHTML = '<span>⏳</span> Processing…';
       setStatus("Generating…");
-      renderTicket('⏳', service, priorityType);
+      renderTicket('⏳', service, isPriority, priorityReason);
 
       try {
-        // FIX carried over from the Sheets version: the sub-type is sent to the
-        // backend (now Firestore) as transactionType, so it's never lost.
-        const data = await addQueueTicket(service, priorityType);
-        renderTicket(data.ticket, service, priorityType);
+        // Priority is now a flag on the real service, not a separate pseudo-service —
+        // callNext automatically serves priority tickets first within that service's
+        // own queue, so staff never need to select "Priority Transaction" separately.
+        const data = await addQueueTicket(service, isPriority, priorityReason);
+        renderTicket(data.ticket, service, isPriority, priorityReason);
         ticketStage.classList.remove('just-issued'); void ticketStage.offsetWidth; ticketStage.classList.add('just-issued');
         setStatus('✅ Ticket ready!');
+        priorityCheckbox.checked = false;
+        prioritySub.classList.remove('visible');
       } catch (err) {
         renderTicket(null);
         setStatus(`⚠️ ${err.message || 'Error'}`);
       }
       generateBtn.disabled = false;
       generateBtn.innerHTML = '<span>➕</span> Generate ticket';
+
     });
 
     document.getElementById('logoutNoBtn').addEventListener('click', ()=> logoutModal.classList.remove('show'));

@@ -45,12 +45,13 @@
   #openReportsBtn:hover{background:#189873 !important}
   #status{min-height:0}
 
+  .priority-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.16);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:var(--r-pill);font-size:0.82rem;font-weight:700;transition:background .3s}
+  .priority-pill.has-priority{background:#fff;color:var(--priority-red);border-color:#fff;animation:pillPulse 1.8s ease-in-out infinite}
+  @keyframes pillPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.5)}50%{box-shadow:0 0 0 6px rgba(255,255,255,0)}}
+
   .top-section{max-height:56vh;overflow-y:auto;padding:2px 4px 6px}
-  .top-grid{display:flex;gap:16px;align-items:stretch;max-width:1200px;margin:0 auto}
-  .priority-watch-col{flex:1;min-width:260px;display:flex}
-  .controls-col{flex:1.3;min-width:280px;display:flex;flex-direction:column;align-items:center}
   .controls-row{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:6px}
-  .control-field{display:flex;flex-direction:column;align-items:flex-start;text-align:left;width:100%;max-width:320px}
+  .control-field{display:flex;flex-direction:column;align-items:flex-start;text-align:left;width:100%;max-width:320px;margin:0 auto}
   .control-field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:0 0 3px 6px}
   .control-field select{margin:0;width:100%}
   #currentTicketCard{margin:12px auto 0;max-width:520px;padding:14px 22px;border-radius:var(--r-lg);background:var(--prc-blue-light);border:1px solid var(--border);box-shadow:var(--shadow-card);transition:background .25s,border-color .25s}
@@ -67,16 +68,10 @@
 
   #datetimeDisplay{font-size:12px;color:var(--muted);margin:2px 0 4px 0;text-align:center}
 
-  .priority-watch{width:100%;margin:0;background:#fff;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--shadow-card);padding:12px 16px;text-align:left;display:flex;flex-direction:column}
-  .priority-watch h4{margin:0 0 4px 0;color:var(--priority-red);font-size:15px;display:flex;align-items:center;gap:8px}
-  .priority-watch .note{font-size:12px;color:var(--muted);margin-bottom:12px}
-  .pw-list{display:flex;flex-direction:column;gap:6px;flex:1;max-height:260px;overflow-y:auto}
-  .pw-item{display:flex;justify-content:space-between;align-items:center;background:var(--priority-bg);border:1px solid #f3c6c2;border-radius:var(--r-md);padding:10px 14px;animation:slideIn .3s ease}
-  @keyframes slideIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
-  .pw-item .ticket{font-weight:800;color:var(--priority-red);min-width:70px}
-  .pw-item .type{font-weight:600;color:#333;flex:1;text-align:left;padding:0 10px}
-  .pw-item .wait{font-size:12px;color:var(--muted)}
-  .pw-empty{font-size:13px;color:var(--muted);padding:14px 0;text-align:center}
+  #totalTodayCard{max-width:340px;margin:16px auto 0;padding:14px 20px;border-radius:var(--r-lg);background:linear-gradient(135deg,var(--prc-navy),var(--prc-blue));box-shadow:0 10px 26px rgba(10,47,107,0.18);display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .total-today-label{color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600}
+  .total-today-value{color:#fff;font-size:1.8rem;font-weight:800;transition:transform .2s}
+  .total-today-value.bump{animation:bump .35s ease}
 
   .summary-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;margin:20px auto;max-width:1200px}
   .summary-card{width:100%;box-sizing:border-box;background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-card);text-align:left;transition:transform .18s}
@@ -148,7 +143,7 @@
   .btn-solid{background:var(--prc-blue);border:none;padding:12px 28px;border-radius:var(--r-pill);font-weight:600;color:#fff;cursor:pointer;transition:.15s;box-shadow:0 8px 16px rgba(13,91,196,0.20)}
   .btn-solid:hover{background:#0947a0;transform:scale(.97)}
 
-  @media (max-width:900px){ #currentTicket{font-size:22px} #dailySummaryChartInner,#previousDayChartInner{height:220px} .top-grid{flex-direction:column} .top-section{max-height:none;overflow-y:visible} .priority-watch-col{min-width:0} .controls-col{min-width:0} .summary-grid,.charts-wrap{grid-template-columns:1fr} }
+  @media (max-width:900px){ #currentTicket{font-size:22px} #dailySummaryChartInner,#previousDayChartInner{height:220px} .top-section{max-height:none;overflow-y:visible} .summary-grid,.charts-wrap{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -161,6 +156,7 @@
         <div><h2>Staff Counter Panel</h2><div class="sub"><span class="live-dot"></span> PRC Robinsons Starmills — Live</div></div>
       </div>
       <div class="appbar-actions">
+        <div id="priorityPill" class="priority-pill" title="Priority tickets currently waiting, across all services">⭐ 0 priority waiting</div>
         <button id="openReportsBtn" class="icon-btn" style="background:#20c997;color:#fff" title="Download reports">📊 Reports</button>
         <button id="openAddCounterBtn" class="icon-btn add" title="Admin: Add Counter" aria-hidden="true">➕ Add Counter</button>
         <button id="openDeleteCounterBtn" class="icon-btn" style="background:#c82333;color:#fff" title="Admin: Delete Counter" aria-hidden="true">🗑️ Delete Counter</button>
@@ -169,46 +165,39 @@
     </div>
 
     <div class="top-section">
-      <div class="top-grid">
-        <div class="priority-watch-col">
-          <div class="priority-watch">
-            <h4>⭐ Priority Watch — Waiting</h4>
-            <div class="note">Priority Transaction tickets currently waiting, oldest first, updating live.</div>
-            <div class="pw-list" id="priorityWatchList"><div class="pw-empty">Loading…</div></div>
-          </div>
+      <div id="datetimeDisplay">Loading date &amp; time...</div>
+
+      <div class="controls-row">
+        <div class="control-field">
+          <label for="counter">Counter</label>
+          <select id="counter"></select>
         </div>
-
-        <div class="controls-col">
-          <div id="datetimeDisplay">Loading date &amp; time...</div>
-
-          <div class="controls-row">
-            <div class="control-field">
-              <label for="counter">Counter</label>
-              <select id="counter"></select>
-            </div>
-            <div class="control-field">
-              <label for="transactionType">Transaction Type</label>
-              <select id="transactionType"><option value="">All Transactions</option></select>
-            </div>
-          </div>
-
-          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
-            <button id="callNextBtn">📣 Call Next</button>
-            <button id="recallBtn">🔁 Recall Previous</button>
-            <button id="markDoneBtn">✅ Mark as Done</button>
-            <button id="transferBtn" style="background:#6f42c1;box-shadow:0 6px 14px rgba(111,66,193,0.22)">🔀 Transfer Client</button>
-            <button id="resetBtn">🧹 Reset Queue</button>
-          </div>
-
-          <div id="status"></div>
-
-          <div id="currentTicketCard">
-            <div class="kicker">Currently Serving</div>
-            <div id="currentTicket">No active ticket</div>
-            <div id="currentTicketMeta"></div>
-            <div id="currentTicketBadgeWrap"></div>
-          </div>
+        <div class="control-field">
+          <label for="transactionType">Transaction Type</label>
+          <select id="transactionType"><option value="">All Transactions</option></select>
         </div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
+        <button id="callNextBtn">📣 Call Next</button>
+        <button id="recallBtn">🔁 Recall Previous</button>
+        <button id="markDoneBtn">✅ Mark as Done</button>
+        <button id="transferBtn" style="background:#6f42c1;box-shadow:0 6px 14px rgba(111,66,193,0.22)">🔀 Transfer Client</button>
+        <button id="resetBtn">🧹 Reset Queue</button>
+      </div>
+
+      <div id="status"></div>
+
+      <div id="currentTicketCard">
+        <div class="kicker">Currently Serving</div>
+        <div id="currentTicket">No active ticket</div>
+        <div id="currentTicketMeta"></div>
+        <div id="currentTicketBadgeWrap"></div>
+      </div>
+
+      <div id="totalTodayCard">
+        <span class="total-today-label">Total Transactions Today</span>
+        <span class="total-today-value" id="totalTodayValue">0</span>
       </div>
     </div>
 
@@ -384,7 +373,7 @@ import {
 
 const CODE_TO_NAME = Object.fromEntries(SERVICES.map(s => [s.code, s.name]));
 const GROUP_MAJOR = ["C","A","EA","R","IR","D"];
-const GROUP_SPECIAL = ["SV","COR","PR","RES","MED","RDA"];
+const GROUP_SPECIAL = ["SV","COR","RES","MED","RDA"];
 const VALID_USERNAME = "starmills";
 const VALID_PASSWORD = "6767";
 
@@ -438,7 +427,8 @@ const logoutCancelBtn = document.getElementById('logoutCancelBtn');
 const logoutConfirmBtn = document.getElementById('logoutConfirmBtn');
 const majorListEl = document.getElementById('majorList');
 const specialListEl = document.getElementById('specialList');
-const priorityWatchList = document.getElementById('priorityWatchList');
+const priorityPill = document.getElementById('priorityPill');
+const totalTodayValue = document.getElementById('totalTodayValue');
 const datetimeDisplay = document.getElementById('datetimeDisplay');
 const dailyChartDate = document.getElementById('dailyChartDate');
 const previousChartDate = document.getElementById('previousChartDate');
@@ -447,7 +437,7 @@ const currentTicketEl = document.getElementById('currentTicket');
 const currentTicketMetaEl = document.getElementById('currentTicketMeta');
 const currentTicketBadgeWrap = document.getElementById('currentTicketBadgeWrap');
 
-let unsubCounters=null, unsubCurrentCounter=null, unsubSummary=null, unsubPriorityWatch=null, unsubDailyChart=null, unsubPrevChart=null;
+let unsubCounters=null, unsubCurrentCounter=null, unsubSummary=null, unsubDailyChart=null, unsubPrevChart=null;
 let intervalDateTime = null;
 let knownCounterIds = [];
 let lastTicketSeen = null;
@@ -513,7 +503,6 @@ function mkItemRow(labelText, count){
   wrap.appendChild(lbl); wrap.appendChild(cnt);
   return wrap;
 }
-function isPriorityService(service){ return (service || '').toLowerCase().includes('priority'); }
 function timeAgo(iso){
   if(!iso) return '';
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime())/60000));
@@ -535,24 +524,20 @@ function renderSummary(counts){
   });
   lastCounts = counts;
 }
-function renderPriorityWatch(tickets){
-  priorityWatchList.innerHTML = '';
-  if (!tickets || tickets.length === 0) { priorityWatchList.innerHTML = '<div class="pw-empty">No priority tickets waiting.</div>'; return; }
-  tickets.forEach(t=>{
-    const row = document.createElement('div'); row.className = 'pw-item';
-    row.innerHTML = `<div class="ticket">${t.ticket}</div><div class="type">${t.transactionType ? t.transactionType : '<span style="color:#a33">Type not set</span>'}</div><div class="wait">${timeAgo(t.timestamp)}</div>`;
-    priorityWatchList.appendChild(row);
-  });
+function updatePriorityPill(count){
+  priorityPill.textContent = `⭐ ${count} priority waiting`;
+  priorityPill.classList.toggle('has-priority', count > 0);
 }
 function renderCurrentTicket(data){
   const newTicket = data && data.ticket ? data.ticket : null;
   if (data && data.ticket){
-    const priority = isPriorityService(data.service);
+    const priority = !!data.priority;
+    const transferred = (data.ticket || '').startsWith('T-');
     currentTicketEl.textContent = data.ticket;
     currentTicketMetaEl.textContent = data.service || '—';
     currentTicketCard.classList.toggle('priority', priority);
-    if (data.transactionType) currentTicketBadgeWrap.innerHTML = `<span id="currentTicketBadge">${priority ? '⭐ Priority — ' : ''}${data.transactionType}</span>`;
-    else if (priority) currentTicketBadgeWrap.innerHTML = `<span id="currentTicketBadge">⭐ Priority — type not set</span>`;
+    if (priority) currentTicketBadgeWrap.innerHTML = `<span id="currentTicketBadge">⭐ Priority${data.priorityReason ? ' — ' + data.priorityReason : ''}</span>`;
+    else if (transferred) currentTicketBadgeWrap.innerHTML = `<span id="currentTicketBadge">🔄 Transferred</span>`;
     else currentTicketBadgeWrap.innerHTML = '';
   } else {
     currentTicketEl.textContent = 'No active ticket';
@@ -615,11 +600,20 @@ function drawChart(containerId, labels, values, color, legend){
   });
 }
 
+let lastTotalToday = null;
+function updateTotalTodayDisplay(total){
+  totalTodayValue.textContent = String(total);
+  if (lastTotalToday !== null && lastTotalToday !== total) {
+    totalTodayValue.classList.remove('bump'); void totalTodayValue.offsetWidth; totalTodayValue.classList.add('bump');
+  }
+  lastTotalToday = total;
+}
 function startDailyChartListener(){
   if (unsubDailyChart) unsubDailyChart();
   unsubDailyChart = listenDailySummary(null, j => {
     const entries = Object.entries(j.perCounter || {});
     drawChart('dailySummaryChartInner', entries.map(e=>e[0]), entries.map(e=>e[1]), '#0d5bc4', 'none');
+    updateTotalTodayDisplay(entries.reduce((sum, e) => sum + (e[1] || 0), 0));
   });
 }
 function loadPreviousDayChart(){
@@ -649,7 +643,7 @@ function openActionConfirm(actionName){
     actionConfirmBtn.removeEventListener('click', handler);
     try {
       let msg = '';
-      if (actionName==='callNext'){ const r = await callNext(counter, service); msg = `✅ Now Serving ${r.ticket} — ${r.service}${r.transactionType ? ` (${r.transactionType})` : ''} at ${r.counter}`; }
+      if (actionName==='callNext'){ const r = await callNext(counter, service); msg = `✅ Now Serving ${r.ticket} — ${r.service}${r.priority ? ` ⭐ Priority${r.priorityReason ? ' ('+r.priorityReason+')' : ''}` : ''} at ${r.counter}`; }
       else if (actionName==='recallPrevious'){ const r = await recallPrevious(counter); msg = `🔁 Recalled ${r.ticket} — ${r.service}${r.transactionType ? ` (${r.transactionType})` : ''} at ${r.counter}`; }
       else if (actionName==='markDone'){ const r = await markDone(counter); msg = `✅ ${r.message}`; refreshTodayStats(); }
       actionConfirmMsg.textContent = msg; toast(msg, 'success');
@@ -824,13 +818,14 @@ document.getElementById('reportsCancelBtn').addEventListener('click', hideReport
 
 function computeReportData(rows){
   const perService = {}, perDay = {}, perCounter = {};
-  let totalTransferred = 0;
+  let totalTransferred = 0, totalPriority = 0;
   rows.forEach(r => {
     const svc = r.service || 'Unknown';
     if (!perService[svc]) perService[svc] = { count:0, totalProcMs:0, procCount:0 };
     perService[svc].count++;
     if (r.calledAt && r.doneAt) { perService[svc].totalProcMs += (r.doneAt - r.calledAt); perService[svc].procCount++; }
     if (r.transferred) totalTransferred++;
+    if (r.priority) totalPriority++;
     const dayKey = r.doneAt ? r.doneAt.toISOString().slice(0,10) : 'unknown';
     perDay[dayKey] = (perDay[dayKey]||0) + 1;
     const cnt = r.counter || 'Unassigned';
@@ -841,7 +836,7 @@ function computeReportData(rows){
   })).sort((a,b)=>b.count-a.count);
   const dayRows = Object.entries(perDay).sort((a,b)=>a[0].localeCompare(b[0]));
   const counterRows = Object.entries(perCounter).sort((a,b)=>b[1]-a[1]);
-  return { serviceRows, dayRows, counterRows, total: rows.length, totalTransferred };
+  return { serviceRows, dayRows, counterRows, total: rows.length, totalTransferred, totalPriority };
 }
 
 function buildInsights(agg){
@@ -863,6 +858,10 @@ function buildInsights(agg){
   if (agg.totalTransferred > 0) {
     const pct = ((agg.totalTransferred/agg.total)*100).toFixed(1);
     lines.push(`${agg.totalTransferred} transaction${agg.totalTransferred===1?'':'s'} (${pct}%) came from a counter transfer.`);
+  }
+  if (agg.totalPriority > 0) {
+    const pctP = ((agg.totalPriority/agg.total)*100).toFixed(1);
+    lines.push(`${agg.totalPriority} transaction${agg.totalPriority===1?'':'s'} (${pctP}%) were priority (Senior/PWD/Pregnant/Solo Parent).`);
   }
   return lines;
 }
@@ -889,9 +888,9 @@ function downloadWorkbook(rows, agg, startVal, endVal){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryAoA), 'Summary');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Date','Completed'], ...agg.dayRows]), 'Daily Totals');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Counter','Completed'], ...agg.counterRows]), 'By Counter');
-  const rawHeader = ['Ticket','Service','Transaction Type','Counter','Transferred','Created','Called','Done','Processing (min)'];
+  const rawHeader = ['Ticket','Service','Priority','Priority Reason','Counter','Transferred','Created','Called','Done','Processing (min)'];
   const rawRows = rows.map(r => [
-    r.ticket, r.service, r.transactionType, r.counter, r.transferred ? 'Yes' : 'No',
+    r.ticket, r.service, r.priority ? 'Yes' : 'No', r.priorityReason || '', r.counter, r.transferred ? 'Yes' : 'No',
     r.createdAt ? r.createdAt.toLocaleString() : '',
     r.calledAt ? r.calledAt.toLocaleString() : '',
     r.doneAt ? r.doneAt.toLocaleString() : '',
@@ -1080,10 +1079,10 @@ async function startAllListeners(){
   loadServices();
   await loadCounters();
   unsubSummary = await listenWaitingSummary(renderSummary);
-  unsubPriorityWatch = await listenWaitingQueue('Priority Transaction', renderPriorityWatch);
   unsubLongestWait = await listenWaitingQueue(null, tickets => {
     totalWaitingCount = tickets.length;
     longestWaitTicket = tickets.length ? tickets[0] : null;
+    updatePriorityPill(tickets.filter(t => t.priority).length);
     renderAnalytics();
   });
   startDailyChartListener();
@@ -1096,7 +1095,6 @@ function stopAllListeners(){
   if (unsubCounters) { unsubCounters(); unsubCounters = null; }
   if (unsubCurrentCounter) { unsubCurrentCounter(); unsubCurrentCounter = null; }
   if (unsubSummary) { unsubSummary(); unsubSummary = null; }
-  if (unsubPriorityWatch) { unsubPriorityWatch(); unsubPriorityWatch = null; }
   if (unsubLongestWait) { unsubLongestWait(); unsubLongestWait = null; }
   if (unsubDailyChart) { unsubDailyChart(); unsubDailyChart = null; }
   if (unsubPrevChart) { unsubPrevChart(); unsubPrevChart = null; }
