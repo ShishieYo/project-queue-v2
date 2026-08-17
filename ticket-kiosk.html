@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>PRC Robinsons Starmills · Queue Kiosk</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --prc-navy:#0a2f6b; --prc-blue:#0d5bc4; --prc-blue-light:#eaf2ff;
+      --priority-red:#b3261e; --priority-bg:#fdeceb; --danger:#c82333; --success:#1e7e34;
+      --bg:#f4f7fc; --card-bg:#ffffff; --muted:#5e6f8d;
+      --r-sm:12px; --r-md:20px; --r-lg:28px; --r-pill:999px;
+      --shadow:0 12px 30px rgba(10,47,107,0.10); --radius:var(--r-lg);
+    }
+    body { font-family: system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; background:var(--bg); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; margin:0; -webkit-font-smoothing:antialiased; }
+    .app-container { width:100%; max-width:480px; background:var(--card-bg); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px 20px 32px; position:relative; }
+    .app-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:8px 12px; background:linear-gradient(90deg,var(--prc-navy),var(--prc-blue)); margin:-24px -20px 20px -20px; padding:18px 20px; border-radius:var(--radius) var(--radius) 0 0; }
+    .brand { display:flex; align-items:center; gap:10px; }
+    .brand-icon { background:rgba(255,255,255,0.16); color:#fff; width:40px; height:40px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+    .brand h1 { font-size:1.15rem; font-weight:700; color:#fff; letter-spacing:-0.2px; }
+    .brand .sub { font-size:0.72rem; color:rgba(255,255,255,0.8); display:flex; align-items:center; gap:6px; }
+    .live-dot{width:6px;height:6px;border-radius:50%;background:#3ddc84;animation:pulse 1.6s infinite}
+    @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,0.55)}70%{box-shadow:0 0 0 6px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+    .logout-btn { background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:8px 16px; border-radius:40px; font-size:0.85rem; font-weight:500; cursor:pointer; transition:all 0.2s; }
+    .logout-btn:hover { background:rgba(255,255,255,0.24); }
+    .ticket-stage { background:var(--prc-blue-light); border-radius:24px; padding:32px 16px 28px; margin:8px 0 24px; text-align:center; border:1px solid rgba(13,91,196,0.10); min-height:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:background .2s, border-color .2s; }
+    .ticket-stage.priority { background:var(--priority-bg); border-color:#f3c6c2; }
+    .ticket-placeholder { color:var(--muted); font-size:1rem; opacity:0.7; display:flex; flex-direction:column; gap:6px; }
+    .ticket-placeholder span { font-size:2.6rem; opacity:0.5; }
+    .ticket-number { background:white; padding:16px 24px; border-radius:80px; box-shadow:0 8px 20px rgba(10,47,107,0.10); font-size:3.2rem; font-weight:700; letter-spacing:2px; color:var(--prc-navy); border:1px solid rgba(255,255,255,0.6); display:inline-block; margin-bottom:8px; word-break:break-word; max-width:100%; animation:ticketPop .45s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes ticketPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+    .ticket-stage.just-issued{animation:issuedGlow 1s ease}
+    @keyframes issuedGlow{0%{box-shadow:0 0 0 0 rgba(13,91,196,0.35)}100%{box-shadow:0 0 0 22px rgba(13,91,196,0)}}
+    .ticket-stage.priority.just-issued{animation:issuedGlowRed 1s ease}
+    @keyframes issuedGlowRed{0%{box-shadow:0 0 0 0 rgba(179,38,30,0.35)}100%{box-shadow:0 0 0 22px rgba(179,38,30,0)}}
+    .ticket-stage.priority .ticket-number { color:var(--priority-red); }
+    .ticket-label { font-size:0.9rem; font-weight:500; color:var(--muted); background:rgba(255,255,255,0.7); padding:4px 16px; border-radius:40px; }
+    .ticket-service { margin-top:12px; font-weight:500; color:#1a3d66; background:white; padding:6px 18px; border-radius:40px; font-size:0.95rem; box-shadow:0 2px 6px rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.02); }
+    .ticket-type-badge { margin-top:8px; background:var(--priority-red); color:white; padding:4px 18px; border-radius:40px; font-size:0.8rem; font-weight:600; letter-spacing:0.5px; display:inline-block; border:1px solid rgba(255,255,255,0.2); }
+    .ticket-timestamp, .ticket-location { margin-top:10px; font-size:0.75rem; background:rgba(10,47,107,0.05); padding:6px 14px; border-radius:40px; color:#1f3a5f; font-weight:500; letter-spacing:0.3px; border:1px solid rgba(10,47,107,0.05); display:inline-block; }
+    .controls { display:flex; flex-direction:column; gap:14px; margin-top:6px; }
+    .control-group { display:flex; flex-direction:column; gap:6px; }
+    .control-group label { font-size:0.85rem; font-weight:500; color:var(--muted); letter-spacing:0.3px; padding-left:6px; }
+    select, .btn-primary { width:100%; padding:16px 18px; font-size:1rem; border-radius:60px; border:1px solid #dae2ed; background:white; transition:all 0.2s; font-weight:500; color:var(--prc-navy); appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235e6f8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 18px center; background-size:18px; cursor:pointer; }
+    select:focus, .btn-primary:focus { outline:2px solid var(--prc-blue); outline-offset:2px; border-color:var(--prc-blue); }
+    .btn-primary { background:var(--prc-blue); color:white; border:none; font-weight:600; box-shadow:0 8px 18px rgba(13,91,196,0.25); display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-primary:hover { background:#0947a0; transform:scale(0.98); }
+    .btn-primary:active { transform:scale(0.96); }
+    .btn-primary:disabled { opacity:0.6; transform:none; box-shadow:none; pointer-events:none; }
+    .status-message { font-size:0.9rem; min-height:1.6rem; color:var(--muted); text-align:center; padding:4px 0; }
+    .priority-sub { display:none; animation:fadeSlide 0.2s ease; }
+    .priority-sub.visible { display:block; }
+    @keyframes fadeSlide { 0% { opacity:0; transform:translateY(-6px); } 100% { opacity:1; transform:translateY(0); } }
+    .login-overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(10,47,107,0.88), rgba(13,91,196,0.78)); backdrop-filter:blur(6px); z-index:3000; opacity:0; pointer-events:none; transition:opacity 0.3s ease; }
+    .login-overlay.show { opacity:1; pointer-events:all; }
+    .login-card { width:94%; max-width:400px; background:white; border-radius:32px; padding:32px 24px 28px; box-shadow:0 30px 60px rgba(0,0,0,0.20); transform:translateY(20px) scale(0.96); transition:transform 0.35s cubic-bezier(0.2,0.9,0.3,1), opacity 0.3s ease; opacity:0; text-align:center; }
+    .login-overlay.show .login-card { transform:translateY(0) scale(1); opacity:1; }
+    .login-card .brand-icon { margin:0 auto 12px; width:60px; height:60px; font-size:28px; border-radius:30px; background:var(--prc-blue-light); color:var(--prc-navy); }
+    .login-card h2 { font-weight:600; font-size:1.5rem; color:var(--prc-navy); margin:4px 0 4px; }
+    .login-card .sub2 { color:var(--muted); font-size:0.85rem; margin-bottom:4px; }
+    .login-card .sub { color:var(--muted); font-size:0.9rem; margin-bottom:20px; }
+    .login-field-wrap { display:flex; flex-direction:column; gap:12px; margin:10px 0 12px; }
+    .login-text-input { width:100%; height:52px; font-size:16px; text-align:left; border-radius:var(--r-pill); border:1px solid #d6dce6; background:#f8faff; padding:0 22px; transition:all 0.2s; font-weight:500; color:var(--prc-navy); }
+    .login-text-input:focus { border-color:var(--prc-blue); box-shadow:0 0 0 4px rgba(13,91,196,0.10); background:white; outline:none; }
+    .login-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; margin-top:18px; }
+    .login-error { color:var(--danger); font-size:0.85rem; min-height:1.6rem; width:100%; }
+    .btn-outline { background:transparent; border:1px solid #d0dbe8; padding:12px 20px; border-radius:60px; font-weight:500; color:#1f3a5f; cursor:pointer; transition:0.15s; }
+    .btn-outline:hover { background:#f0f4fe; }
+    .btn-solid { background:var(--prc-blue); border:none; padding:12px 28px; border-radius:60px; font-weight:600; color:white; cursor:pointer; transition:0.15s; box-shadow:0 8px 16px rgba(13,91,196,0.20); }
+    .btn-solid:hover { background:#0947a0; transform:scale(0.97); }
+    .modal { display:none; position:fixed; inset:0; z-index:4000; align-items:center; justify-content:center; pointer-events:none; }
+    .modal.show { display:flex; pointer-events:all; }
+    .modal-backdrop { position:absolute; inset:0; background:rgba(0,20,30,0.4); backdrop-filter:blur(4px); opacity:0; transition:opacity 0.25s; }
+    .modal.show .modal-backdrop { opacity:1; }
+    .modal-panel { position:relative; background:white; max-width:360px; width:92%; border-radius:32px; padding:28px 20px 24px; text-align:center; box-shadow:0 40px 80px rgba(0,0,0,0.20); transform:translateY(20px) scale(0.96); opacity:0; transition:transform 0.3s cubic-bezier(0.2,0.9,0.3,1), opacity 0.25s; }
+    .modal.show .modal-panel { transform:translateY(0) scale(1); opacity:1; }
+    .modal-panel h3 { font-size:1.4rem; font-weight:600; margin-bottom:8px; color:var(--prc-navy); }
+    .modal-panel p { color:var(--muted); margin:8px 0 20px; line-height:1.4; }
+    .modal-actions { display:flex; gap:12px; justify-content:center; }
+    .modal-actions .btn { padding:12px 24px; border-radius:60px; border:none; font-weight:600; cursor:pointer; transition:0.15s; }
+    .modal-actions .btn-primary-solid { background:var(--prc-blue); color:white; box-shadow:0 4px 10px rgba(13,91,196,0.2); }
+    .modal-actions .btn-primary-solid:hover { background:#0947a0; }
+    .modal-actions .btn-danger { background:var(--danger); color:white; }
+    .modal-actions .btn-danger:hover { background:#a51d2b; }
+    .modal-actions .btn-ghost { background:transparent; border:1px solid #d0dbe8; color:#1f3a5f; }
+    @media (max-width:420px) { .app-container { padding:16px; } .ticket-number { font-size:2.6rem; padding:14px 18px; } }
+  </style>
+</head>
+<body>
+
+  <div id="loginOverlay" class="login-overlay show">
+    <div class="login-card">
+      <div class="brand-icon">🔐</div>
+      <h2>PRC Robinsons Starmills</h2>
+      <div class="sub2">Queue Kiosk</div>
+      <div class="sub">Sign in with your staff account</div>
+      <div class="login-field-wrap">
+        <input id="loginUsername" class="login-text-input" type="text" placeholder="Username" autocomplete="username">
+        <input id="loginPassword" class="login-text-input" type="password" placeholder="Password" autocomplete="current-password">
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-actions">
+        <button id="helpBtn" class="btn-outline" style="padding:10px 16px;font-size:0.9rem;">help</button>
+        <button id="clearBtn" class="btn-outline" style="padding:10px 16px;">clear</button>
+        <button id="loginBtn" class="btn-solid">sign in</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main" class="app-container" style="display:none;">
+    <header class="app-header">
+      <div class="brand"><div class="brand-icon">🎫</div><div><h1>Queue</h1><div class="sub"><span class="live-dot"></span> PRC Robinsons Starmills</div></div></div>
+      <button id="logoutBtn" class="logout-btn">Logout</button>
+    </header>
+
+    <div class="ticket-stage" id="ticketStage">
+      <div id="ticketDisplay" class="ticket-placeholder"><span>🪪</span><span style="font-size:0.9rem; opacity:0.6;">your ticket appears here</span></div>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="service">Service</label>
+        <select id="service"></select>
+      </div>
+      <div class="control-group priority-sub" id="prioritySub">
+        <label for="priorityType">Priority Transaction Type</label>
+        <select id="priorityType">
+          <option value="Certification">Certification</option>
+          <option value="Authentication">Authentication</option>
+          <option value="Exam Application">Exam Application</option>
+          <option value="Renewal">Renewal</option>
+          <option value="Initial Registration">Initial Registration</option>
+          <option value="Duplicate ID">Duplicate ID</option>
+          <option value="Certificate of Registration">Certificate of Registration</option>
+          <option value="Stateboard Verification">Stateboard Verification</option>
+          <option value="Real Estate Salesperson">Real Estate Salesperson</option>
+          <option value="Medical Representative">Medical Representative</option>
+          <option value="Accreditation">Accreditation</option>
+        </select>
+      </div>
+      <button id="generateBtn" class="btn-primary"><span>➕</span> Generate ticket</button>
+      <div id="statusMessage" class="status-message"></div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+      <h3>📌 Confirm</h3>
+      <p id="confirmText">Generate a ticket for this service?</p>
+      <div class="modal-actions">
+        <button class="btn btn-primary-solid" id="confirmYesBtn">Yes</button>
+        <button class="btn btn-ghost" id="confirmNoBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="logoutModal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+      <h3>👋 Logout</h3>
+      <p>You'll need to re-enter the PIN.</p>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="logoutYesBtn">Logout</button>
+        <button class="btn btn-ghost" id="logoutNoBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SERVICES, addQueueTicket } from "./queue-core.js";
+
+    const VALID_USERNAME = "starmills";
+    const VALID_PASSWORD = "6767";
+    const LOCATION = "PRC Service Center: Robinsons Starmills";
+
+    const overlay = document.getElementById('loginOverlay');
+    const mainWrap = document.getElementById('main');
+    const usernameInput = document.getElementById('loginUsername');
+    const passwordInput = document.getElementById('loginPassword');
+    const loginBtn = document.getElementById('loginBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const helpBtn = document.getElementById('helpBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginError = document.getElementById('loginError');
+    const serviceSelect = document.getElementById('service');
+    const prioritySub = document.getElementById('prioritySub');
+    const priorityTypeSelect = document.getElementById('priorityType');
+    const generateBtn = document.getElementById('generateBtn');
+    const ticketStage = document.getElementById('ticketStage');
+    const ticketDisplay = document.getElementById('ticketDisplay');
+    const statusMsg = document.getElementById('statusMessage');
+    const confirmModal = document.getElementById('confirmModal');
+    const logoutModal = document.getElementById('logoutModal');
+    const confirmText = document.getElementById('confirmText');
+
+    let selectedService = "", selectedPriorityType = "";
+
+    function setError(msg) { loginError.textContent = msg || ""; }
+    function clearLoginFields() { usernameInput.value = ""; passwordInput.value = ""; usernameInput.focus(); setError(""); }
+    function setStatus(msg) { statusMsg.textContent = msg || ""; }
+    function getCurrentTimestamp() {
+      const now = new Date();
+      return `${now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })} · ${now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true })}`;
+    }
+
+    function renderTicket(ticketNumber, serviceName, priorityType) {
+      ticketStage.classList.toggle('priority', !!priorityType);
+      if (!ticketNumber) {
+        ticketDisplay.innerHTML = `<span>🪪</span><span style="font-size:0.9rem; opacity:0.6;">your ticket appears here</span>`;
+        return;
+      }
+      const typeHtml = priorityType ? `<div class="ticket-type-badge">⭐ ${priorityType}</div>` : '';
+      const serviceHtml = serviceName ? `<div class="ticket-service">${serviceName}</div>` : '';
+      ticketDisplay.innerHTML = `
+        <div class="ticket-number">${ticketNumber}</div>
+        ${serviceHtml}${typeHtml}
+        <div class="ticket-timestamp">🕒 ${getCurrentTimestamp()}</div>
+        <div class="ticket-location">📍 ${LOCATION}</div>
+        <div class="ticket-label" style="margin-top:10px;">📸 show this to the counter</div>`;
+    }
+
+    function revealMain() { overlay.classList.remove('show'); mainWrap.style.display = 'block'; loadServices(); setStatus(''); renderTicket(null); }
+    function showLoginOverlay() { overlay.classList.add('show'); mainWrap.style.display = 'none'; clearLoginFields(); setError(''); }
+    function attemptLogin() {
+      const u = (usernameInput.value || "").trim();
+      const p = (passwordInput.value || "").trim();
+      if (!u || !p) { setError("Enter your username and password"); return; }
+      loginBtn.disabled = true; loginBtn.textContent = "…";
+      setTimeout(() => {
+        if (u === VALID_USERNAME && p === VALID_PASSWORD) revealMain();
+        else { setError("Invalid username or password"); passwordInput.value = ""; passwordInput.focus(); }
+        loginBtn.disabled = false; loginBtn.textContent = "sign in";
+      }, 300);
+    }
+    loginBtn.addEventListener('click', attemptLogin);
+    clearBtn.addEventListener('click', clearLoginFields);
+    helpBtn.addEventListener('click', ()=> setError("Ask your supervisor for the staff login."));
+    usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') passwordInput.focus(); });
+    passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
+    logoutBtn.addEventListener('click', ()=> logoutModal.classList.add('show'));
+    window.addEventListener('load', showLoginOverlay);
+
+    function loadServices() {
+      serviceSelect.innerHTML = '';
+      SERVICES.forEach(svc => {
+        const opt = document.createElement("option");
+        opt.value = svc.name; opt.textContent = `${svc.code} - ${svc.name}`;
+        serviceSelect.appendChild(opt);
+      });
+      checkPriorityVisibility();
+    }
+    function checkPriorityVisibility() {
+      prioritySub.classList.toggle('visible', serviceSelect.value === 'Priority Transaction');
+    }
+    serviceSelect.addEventListener('change', checkPriorityVisibility);
+
+    generateBtn.addEventListener('click', () => {
+      const service = serviceSelect.value;
+      if (!service) { setStatus("⚠️ Please select a service"); return; }
+      let priorityType = '';
+      if (service === 'Priority Transaction') {
+        priorityType = priorityTypeSelect.value;
+        if (!priorityType) { setStatus("⚠️ Please select a Priority Transaction Type"); return; }
+      }
+      selectedService = service; selectedPriorityType = priorityType;
+      let msg = `Generate ticket for "${service}"`;
+      if (priorityType) msg += ` (⭐ ${priorityType})`;
+      confirmText.textContent = msg + '?';
+      confirmModal.classList.add('show');
+    });
+
+    document.getElementById('confirmNoBtn').addEventListener('click', ()=> confirmModal.classList.remove('show'));
+    document.getElementById('confirmYesBtn').addEventListener('click', async () => {
+      confirmModal.classList.remove('show');
+      if (!selectedService) return;
+      const service = selectedService, priorityType = selectedPriorityType;
+
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<span>⏳</span> Processing…';
+      setStatus("Generating…");
+      renderTicket('⏳', service, priorityType);
+
+      try {
+        // FIX carried over from the Sheets version: the sub-type is sent to the
+        // backend (now Firestore) as transactionType, so it's never lost.
+        const data = await addQueueTicket(service, priorityType);
+        renderTicket(data.ticket, service, priorityType);
+        ticketStage.classList.remove('just-issued'); void ticketStage.offsetWidth; ticketStage.classList.add('just-issued');
+        setStatus('✅ Ticket ready!');
+      } catch (err) {
+        renderTicket(null);
+        setStatus(`⚠️ ${err.message || 'Error'}`);
+      }
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = '<span>➕</span> Generate ticket';
+    });
+
+    document.getElementById('logoutNoBtn').addEventListener('click', ()=> logoutModal.classList.remove('show'));
+    document.getElementById('logoutYesBtn').addEventListener('click', ()=> { logoutModal.classList.remove('show'); setTimeout(showLoginOverlay, 180); });
+
+    document.querySelectorAll('.modal-backdrop').forEach(el => {
+      el.addEventListener('click', function() { this.closest('.modal').classList.remove('show'); });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { confirmModal.classList.remove('show'); logoutModal.classList.remove('show'); }
+    });
+  </script>
+</body>
+</html>

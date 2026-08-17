@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRC Robinsons Starmills — Now Serving</title>
+<style>
+  :root{
+    --prc-navy:#0a2f6b; --prc-blue:#0d5bc4; --prc-blue-light:#eaf2ff;
+    --priority-red:#b3261e; --priority-bg:#fdeceb;
+    --ink:#0b1f3a; --muted:#5e6f8d; --border:#e1e8f4;
+    --r-sm:12px; --r-md:16px; --r-lg:28px; --r-pill:999px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;padding:0;background:#f4f7fc;font-family:'Segoe UI',system-ui,Roboto,sans-serif;color:var(--ink);display:flex;flex-direction:column;align-items:center}
+  .topbar{width:100%;background:linear-gradient(90deg,var(--prc-navy),var(--prc-blue));color:#fff;padding:1.4vh 2vw;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 14px rgba(10,47,107,0.18)}
+  .topbar .brand{display:flex;align-items:center;gap:14px}
+  .topbar .brand-badge{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;padding:6px;overflow:hidden}
+  .topbar .brand-badge img{width:100%;height:100%;object-fit:contain}
+  .topbar h1{font-size:1.6vw;margin:0;font-weight:700}
+  .topbar .sub{font-size:0.85vw;opacity:0.85;margin-top:2px;display:flex;align-items:center;gap:6px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 0 rgba(61,220,132,0.5);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,0.5)}70%{box-shadow:0 0 0 6px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+  .topbar .clock{font-size:1.1vw;font-weight:600;opacity:0.95}
+  .main-container{display:flex;width:95%;flex:1;margin-top:2.4vh;justify-content:flex-start;gap:2vw;align-items:stretch}
+  .table-container{flex:7;display:flex;flex-direction:column;align-items:stretch}
+  #enableSound{align-self:center;background:var(--prc-blue);color:#fff;border:none;padding:1vh 2vw;border-radius:999px;cursor:pointer;font-size:1.1vw;margin-bottom:1.6vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25);transition:.2s ease}
+  #enableSound:hover{background:#0947a0}
+  table{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 26px rgba(10,47,107,0.08);border:1px solid var(--border)}
+  th,td{text-align:center;padding:1.6vh 0.6vw;word-wrap:break-word}
+  th{background:var(--prc-navy);color:#fff;font-size:1.35vw;height:6vh;font-weight:600}
+  td{font-size:1.9vw;font-weight:600;border-bottom:1px solid var(--border)}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#f8fafd}
+  .idle{color:#9aa7bb;font-weight:500}
+  .serving{color:#1e7e34;font-weight:800}
+  .type-badge{display:inline-block;margin-top:6px;font-size:0.95vw;font-weight:700;padding:3px 12px;border-radius:999px;background:var(--prc-blue-light);color:var(--prc-navy)}
+  .type-badge.priority{background:var(--priority-bg);color:var(--priority-red)}
+  .type-badge.transferred{background:#efe6fb;color:#5a349a}
+  .priority-row td{background:var(--priority-bg) !important}
+  .priority-row .serving{color:var(--priority-red)}
+  tr.just-updated{animation:rowFlash .9s ease}
+  @keyframes rowFlash{0%{background:rgba(13,91,196,0.14)}100%{background:transparent}}
+  .priority-row.just-updated{animation:rowFlashPriority .9s ease}
+  @keyframes rowFlashPriority{0%{background:rgba(179,38,30,0.20)}100%{background:var(--priority-bg)}}
+
+  .side-panel{flex:3;display:flex;flex-direction:column;gap:1.4vh}
+  .photo-carousel{position:relative;width:100%;max-width:320px;flex:1;margin:0 auto;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(10,47,107,0.08)}
+  .carousel-img{position:absolute;inset:8px;width:calc(100% - 16px);height:calc(100% - 16px);object-fit:contain;background:#fff;border:2px solid var(--border);border-radius:8px;opacity:0;transition:opacity 1.1s ease}
+  .carousel-img.active{opacity:1}
+  .carousel-dots{position:absolute;bottom:2px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+  .carousel-dots span{width:7px;height:7px;border-radius:50%;background:rgba(10,47,107,0.25);transition:background .3s,transform .3s}
+  .carousel-dots span.active{background:var(--prc-blue);transform:scale(1.25)}
+
+  .feedback-panel{flex:0 0 auto;width:100%;max-width:320px;margin:0 auto;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1vh 1.2vw;background:#fff;border:1px solid var(--border);box-shadow:0 10px 26px rgba(10,47,107,0.06)}
+  .feedback-panel h2{color:var(--prc-navy);font-size:0.9vw;margin:0 0 0.2vh 0}
+  .feedback-panel p{font-size:0.65vw;color:var(--muted);margin-bottom:0.6vh;max-width:90%}
+  #feedbackButton{background:var(--prc-blue);color:#fff;border:none;padding:0.5vh 1.4vw;font-size:0.8vw;border-radius:999px;cursor:pointer;transition:.2s ease;margin-bottom:0.7vh;font-weight:600;box-shadow:0 6px 16px rgba(13,91,196,0.25)}
+  #feedbackButton:hover{background:#0947a0}
+  #qrContainer{display:flex;flex-direction:column;align-items:center}
+  #qrContainer img{width:9.5vw;height:auto;border-radius:8px;border:5px solid #fff;box-shadow:0 4px 14px rgba(10,47,107,0.12)}
+  #qrContainer p{font-size:0.65vw;color:var(--muted);margin-top:0.5vh}
+  @media (max-width:900px){
+    html,body{overflow-y:auto;height:auto}
+    .topbar h1{font-size:5vw} .topbar .sub{font-size:3vw} .topbar .clock{font-size:4vw}
+    .main-container{flex-direction:column;align-items:center;width:100%;gap:2.4vh;margin-top:2.4vh}
+    .table-container,.side-panel{width:95%}
+    .photo-carousel{max-width:70vw;min-height:40vh}
+    .feedback-panel{max-width:70vw}
+    #enableSound{font-size:3.6vw;padding:1.4vh 4vw}
+    th{font-size:4vw} td{font-size:5vw} .type-badge{font-size:2.6vw}
+    .feedback-panel h2{font-size:4.2vw} .feedback-panel p{font-size:3vw}
+    #feedbackButton{font-size:3.6vw;padding:1.2vh 4vw}
+    #qrContainer img{width:38vw} #qrContainer p{font-size:2.6vw}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge"><img src="https://i.imgur.com/DcctCpR.png" alt="PRC" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏛️'}))" /></div>
+      <div>
+        <h1>Professional Regulation Commission — Robinsons Starmills</h1>
+        <div class="sub"><span class="live-dot"></span> Live · Public Queue Display</div>
+      </div>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+
+  <div class="main-container">
+    <div class="table-container">
+      <button id="enableSound" onclick="window.__enableVoice()">🔊 Click to Enable Sound</button>
+      <table>
+        <thead><tr><th>Counter</th><th>Ticket</th><th>Service</th><th>Status</th></tr></thead>
+        <tbody id="display"></tbody>
+      </table>
+    </div>
+
+    <div class="side-panel">
+      <div class="feedback-panel">
+        <h2>We Value Your Feedback</h2>
+        <p>Your opinion helps us improve our public service.</p>
+        <button id="feedbackButton" onclick="window.open('https://crms.prc.gov.ph/feedbackform','_blank')">⭐ Rate Our Service</button>
+        <div id="qrContainer">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?data=https://crms.prc.gov.ph/feedbackform&size=400x400" alt="PRC Feedback QR">
+          <p>Scan to open feedback form</p>
+        </div>
+      </div>
+
+      <div class="photo-carousel" id="photoCarousel">
+        <img class="carousel-img active" src="https://i.imgur.com/ZqBuNRs.jpeg" alt="Bawal ang Red Tape">
+        <img class="carousel-img" src="https://i.imgur.com/He2wa9j.jpeg" alt="Citizen's Charter / CSM Form">
+        <img class="carousel-img" src="https://i.imgur.com/Y31drvA.png" alt="PRC Digital Kiosk">
+        <div class="carousel-dots" id="carouselDots"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { listenCounters, cleanupStaleCounters } from "./queue-core.js";
+
+    let voices = [];
+    let soundEnabled = false;
+    let lastAnnounced = {}; // counterId -> "ticket|recallCount"
+
+    function tickClock(){ document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: true }); }
+    setInterval(tickClock, 1000); tickClock();
+
+    function loadVoices() {
+      voices = window.speechSynthesis.getVoices();
+      if (!voices.length) window.speechSynthesis.onvoiceschanged = () => { voices = window.speechSynthesis.getVoices(); };
+    }
+    function getNeutralVoice() {
+      return voices.find(v => v.name && v.name.includes("Google UK English Female")) ||
+             voices.find(v => v.name && v.name.includes("Google US English")) ||
+             voices.find(v => v.lang === "en-US") || voices.find(v => v.lang === "en-GB") || voices[0];
+    }
+    window.__enableVoice = function() {
+      soundEnabled = true;
+      document.getElementById("enableSound").style.display = "none";
+      const msg = new SpeechSynthesisUtterance("Voice announcements enabled.");
+      const v = getNeutralVoice(); if (v) msg.voice = v;
+      window.speechSynthesis.speak(msg);
+    };
+
+    function isPriorityService(service){ return (service || "").toLowerCase().includes("priority"); }
+
+    function playDingSound(callback) {
+      try {
+        const audio = new Audio("https://upload.wikimedia.org/wikipedia/commons/3/34/Sound_Effect_-_Door_Bell.ogg");
+        audio.volume = 0.4;
+        audio.play().then(() => { if (callback) setTimeout(callback, 1000); });
+      } catch { if (callback) callback(); }
+    }
+    function speakWithDelay(msg, delay = 0) {
+      setTimeout(() => { window.speechSynthesis.cancel(); window.speechSynthesis.speak(msg); }, delay);
+    }
+    function announceTicket(ticket, counter, service) {
+      const formattedTicket = ticket.split('').join(' ');
+      const serviceText = service ? `for ${service}` : '';
+      const msg = new SpeechSynthesisUtterance(`Now serving ${formattedTicket}, ${serviceText}, at ${counter}`);
+      msg.rate = 0.9; msg.pitch = 1.0; msg.volume = 1; msg.voice = getNeutralVoice();
+      playDingSound(() => {
+        speakWithDelay(msg, 300);
+        setTimeout(() => { playDingSound(() => speakWithDelay(msg, 300)); }, 5000);
+      });
+    }
+
+    let lastRowState = {}; // counterId -> "ticket|status|recallCount", drives flash animation
+
+    function render(rows) {
+      const tbody = document.getElementById('display');
+      tbody.innerHTML = "";
+      rows.forEach(row => {
+        const { counterId: counter, status, ticket, service, transactionType, recallCount } = row;
+        const priority = isPriorityService(service);
+        const transferred = (ticket || '').startsWith('T-');
+        const tr = document.createElement('tr');
+        if (priority && (status || '').toLowerCase() === 'now serving') tr.classList.add('priority-row');
+
+        let serviceCell = service || '-';
+        if (transactionType) {
+          serviceCell = `${service || ''}<br><span class="type-badge ${priority ? 'priority' : ''}">${priority ? '⭐ ' : ''}${transactionType}</span>`;
+        }
+        if (transferred) {
+          serviceCell = `${service || ''}<br><span class="type-badge transferred">🔄 Transferred</span>`;
+        }
+
+        tr.innerHTML = `
+          <td>${counter}</td>
+          <td>${ticket || '-'}</td>
+          <td>${serviceCell}</td>
+          <td class="${(status || '').toLowerCase() === 'now serving' ? 'serving' : 'idle'}">${status || 'Idle'}</td>`;
+
+        const stateKey = `${ticket || ''}|${status || ''}|${recallCount || 0}`;
+        if (lastRowState[counter] !== undefined && lastRowState[counter] !== stateKey) {
+          tr.classList.add('just-updated');
+        }
+        lastRowState[counter] = stateKey;
+
+        tbody.appendChild(tr);
+
+        const dedupeKey = `${ticket}|${recallCount || 0}`;
+        if (soundEnabled && (status || '').toLowerCase() === 'now serving' && ticket && lastAnnounced[counter] !== dedupeKey) {
+          lastAnnounced[counter] = dedupeKey;
+          announceTicket(ticket, counter, service);
+        }
+      });
+    }
+
+    // Real-time — no polling. Updates the instant staff call/recall/mark done anywhere.
+    listenCounters(render);
+    loadVoices();
+    cleanupStaleCounters().catch(()=>{});
+    setInterval(() => cleanupStaleCounters().catch(()=>{}), 5 * 60 * 1000); // re-check every 5 min in case midnight passes while this tab stays open
+
+    // ---------- Photo carousel ----------
+    (function initCarousel(){
+      const imgs = Array.from(document.querySelectorAll('.carousel-img'));
+      const dotsWrap = document.getElementById('carouselDots');
+      if (imgs.length < 2) return;
+      imgs.forEach((_, i) => {
+        const dot = document.createElement('span');
+        if (i === 0) dot.classList.add('active');
+        dotsWrap.appendChild(dot);
+      });
+      const dots = Array.from(dotsWrap.children);
+      let idx = 0;
+      setInterval(() => {
+        imgs[idx].classList.remove('active');
+        dots[idx].classList.remove('active');
+        idx = (idx + 1) % imgs.length;
+        imgs[idx].classList.add('active');
+        dots[idx].classList.add('active');
+      }, 7000);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PRC Robinsons Starmills — Staff Counter Panel</title>
+<style>
+  :root{
+    --prc-navy:#0a2f6b; --prc-blue:#0d5bc4; --prc-blue-light:#eaf2ff;
+    --priority-red:#b3261e; --priority-bg:#fdeceb; --danger:#c82333; --success:#1e7e34;
+    --muted:#5e6f8d; --card-bg:#fff; --surface:#f4f7fc; --border:#e1e8f4;
+    --r-sm:12px; --r-md:20px; --r-lg:28px; --r-pill:999px;
+    --shadow-card:0 10px 26px rgba(10,47,107,0.08);
+    --shadow-pop:0 20px 50px rgba(10,47,107,0.22);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:'Segoe UI',system-ui,Roboto,sans-serif;background:var(--surface);color:#0b1f3a}
+  .wrap{padding:0 18px 32px;text-align:center;position:relative;min-height:100vh;display:none;animation:fadeIn .4s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  .appbar{background:linear-gradient(90deg,var(--prc-navy),var(--prc-blue));color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(10,47,107,0.20);margin:0 -18px 12px -18px;border-radius:0 0 var(--r-lg) var(--r-lg)}
+  .appbar .brand{display:flex;align-items:center;gap:12px;text-align:left}
+  .appbar .brand-badge{width:42px;height:42px;border-radius:var(--r-sm);background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;padding:5px;overflow:hidden}
+  .appbar .brand-badge img{width:100%;height:100%;object-fit:contain}
+  .appbar h2{margin:0;font-size:1.1rem;font-weight:700}
+  .appbar .sub{font-size:0.76rem;opacity:0.85;display:flex;align-items:center;gap:6px}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:#3ddc84;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,0.55)}70%{box-shadow:0 0 0 7px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+  .appbar-actions{display:flex;gap:8px;align-items:center}
+  .icon-btn{padding:9px 16px;border-radius:var(--r-pill);border:none;cursor:pointer;font-weight:600;font-size:0.85rem;box-shadow:0 4px 10px rgba(0,0,0,0.10);transition:.15s}
+  .icon-btn:active{transform:scale(.94)}
+  .icon-btn.add{background:#17a2b8;color:#fff}
+  .icon-btn.logout{background:rgba(255,255,255,0.16);color:#fff;border:1px solid rgba(255,255,255,0.3)}
+
+  select,button,input{padding:12px 16px;font-size:15px;margin:6px;border-radius:var(--r-pill);border:1px solid #d6dce6;font-family:inherit;transition:.15s}
+  select{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%235e6f8d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 16px center;background-size:16px;padding-right:40px}
+  button{background:var(--prc-blue);color:#fff;border:none;cursor:pointer;font-weight:600;box-shadow:0 6px 14px rgba(13,91,196,0.22)}
+  button:hover{background:#0947a0}
+  button:active{transform:scale(.96)}
+  #resetBtn{background:var(--danger);box-shadow:0 6px 14px rgba(200,35,51,0.22)}
+  #resetBtn:hover{background:#b02a37}
+  #transferBtn:hover{background:#5a349a !important}
+  #downloadExcelBtn:hover{background:#166a2b !important}
+  #downloadPdfBtn:hover{background:#a51d2b !important}
+  #openReportsBtn:hover{background:#189873 !important}
+  #status{min-height:0}
+
+  .top-section{max-height:56vh;overflow-y:auto;padding:2px 4px 6px}
+  .top-grid{display:flex;gap:16px;align-items:stretch;max-width:1200px;margin:0 auto}
+  .priority-watch-col{flex:1;min-width:260px;display:flex}
+  .controls-col{flex:1.3;min-width:280px;display:flex;flex-direction:column;align-items:center}
+  .controls-row{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:6px}
+  .control-field{display:flex;flex-direction:column;align-items:flex-start;text-align:left;width:100%;max-width:320px}
+  .control-field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:0 0 3px 6px}
+  .control-field select{margin:0;width:100%}
+  #currentTicketCard{margin:12px auto 0;max-width:520px;padding:14px 22px;border-radius:var(--r-lg);background:var(--prc-blue-light);border:1px solid var(--border);box-shadow:var(--shadow-card);transition:background .25s,border-color .25s}
+  #currentTicketCard.priority{background:var(--priority-bg);border-color:#f3c6c2;animation:priorityGlow 2s ease-in-out infinite}
+  @keyframes priorityGlow{0%,100%{box-shadow:var(--shadow-card)}50%{box-shadow:0 10px 30px rgba(179,38,30,0.22)}}
+  #currentTicketCard .kicker{font-size:0.76rem;color:var(--muted);font-weight:700;letter-spacing:0.5px;text-transform:uppercase}
+  #currentTicket{font-size:30px;color:var(--prc-navy);font-weight:800;margin-top:6px;display:inline-block}
+  #currentTicketCard.priority #currentTicket{color:var(--priority-red)}
+  #currentTicket.pop{animation:popIn .38s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes popIn{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  #currentTicketMeta{margin-top:8px;font-size:14px;color:var(--muted)}
+  #currentTicketBadge{display:inline-block;margin-top:12px;font-size:0.85rem;font-weight:700;padding:6px 16px;border-radius:var(--r-pill);background:#fff;color:var(--prc-navy);border:1px solid var(--border)}
+  #currentTicketCard.priority #currentTicketBadge{color:var(--priority-red);border-color:#f3c6c2}
+
+  #datetimeDisplay{font-size:12px;color:var(--muted);margin:2px 0 4px 0;text-align:center}
+
+  .priority-watch{width:100%;margin:0;background:#fff;border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--shadow-card);padding:12px 16px;text-align:left;display:flex;flex-direction:column}
+  .priority-watch h4{margin:0 0 4px 0;color:var(--priority-red);font-size:15px;display:flex;align-items:center;gap:8px}
+  .priority-watch .note{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .pw-list{display:flex;flex-direction:column;gap:6px;flex:1;max-height:260px;overflow-y:auto}
+  .pw-item{display:flex;justify-content:space-between;align-items:center;background:var(--priority-bg);border:1px solid #f3c6c2;border-radius:var(--r-md);padding:10px 14px;animation:slideIn .3s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+  .pw-item .ticket{font-weight:800;color:var(--priority-red);min-width:70px}
+  .pw-item .type{font-weight:600;color:#333;flex:1;text-align:left;padding:0 10px}
+  .pw-item .wait{font-size:12px;color:var(--muted)}
+  .pw-empty{font-size:13px;color:var(--muted);padding:14px 0;text-align:center}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;margin:20px auto;max-width:1200px}
+  .summary-card{width:100%;box-sizing:border-box;background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-card);text-align:left;transition:transform .18s}
+  .summary-card:hover{transform:translateY(-2px)}
+  .summary-card h4{margin:0 0 12px 0;color:var(--prc-navy);font-size:15px}
+  .summary-card.special h4{color:var(--priority-red)}
+  .summary-list{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;align-items:stretch;position:relative}
+  .summary-list::before{content:'';position:absolute;top:2px;bottom:2px;left:50%;width:1px;background:linear-gradient(to bottom, transparent, var(--border) 12%, var(--border) 88%, transparent);transform:translateX(-50%)}
+  .summary-item{padding:8px 4px;border-radius:var(--r-sm);display:flex;justify-content:space-between;align-items:center}
+  .summary-item .label{font-weight:600;color:#333;font-size:14px}
+  .summary-item .count{font-weight:800;font-size:14px;padding:6px 12px;border-radius:var(--r-pill);background:#f1f5f9;border:1px solid #e6e9ee;min-width:38px;text-align:center;transition:transform .2s,background .2s,color .2s}
+  .summary-item .count.bump{animation:bump .35s ease}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.28)}100%{transform:scale(1)}}
+  .count.green{color:var(--success)} .count.orange{color:#c77700} .count.red{color:var(--priority-red);background:var(--priority-bg);border-color:#f3c6c2}
+  .summary-note{font-size:12px;color:var(--muted);margin-top:10px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+
+  .charts-wrap{display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;margin:20px auto 0;max-width:1200px}
+  .chart-card{width:100%;box-sizing:border-box;background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;box-shadow:var(--shadow-card);text-align:center}
+  .chart-card h4{margin:6px 0;color:var(--prc-navy);display:flex;align-items:center;justify-content:center;gap:6px}
+  .chart-date-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+  #dailySummaryChartInner,#previousDayChartInner{width:100%;max-width:900px;height:240px;margin:0 auto;transition:opacity .2s}
+
+  .analytics-more{max-width:900px;margin:26px auto 6px;text-align:left}
+  .analytics-more summary{cursor:pointer;font-size:12px;color:var(--muted);font-weight:600;list-style:none;user-select:none;padding:8px 4px;opacity:0.75;transition:opacity .15s}
+  .analytics-more summary:hover{opacity:1}
+  .analytics-more summary::-webkit-details-marker{display:none}
+  .analytics-more summary::before{content:'▸';display:inline-block;margin-right:6px;transition:transform .2s}
+  .analytics-more[open] summary::before{transform:rotate(90deg)}
+  .analytics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px;animation:fadeIn .3s ease}
+  .analytics-tile{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;box-shadow:var(--shadow-card)}
+  .analytics-tile .label{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .analytics-tile .value{font-size:17px;font-weight:800;color:var(--prc-navy);margin-top:4px}
+
+  #toastStack{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:340px}
+  .toast{background:#fff;border-radius:var(--r-md);box-shadow:var(--shadow-pop);padding:14px 18px;font-size:14px;font-weight:600;color:var(--prc-navy);border-left:5px solid var(--prc-blue);animation:toastIn .28s cubic-bezier(.2,.9,.3,1)}
+  .toast.error{border-left-color:var(--danger);color:var(--danger)}
+  .toast.success{border-left-color:var(--success);color:var(--success)}
+  .toast.out{animation:toastOut .25s ease forwards}
+  @keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes toastOut{to{opacity:0;transform:translateX(30px)}}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.4);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:30001}
+  .modal{background:#fff;border-radius:var(--r-lg);padding:26px;width:380px;max-width:92%;box-shadow:var(--shadow-pop);transform:translateY(16px) scale(.96);opacity:0;transition:transform .28s cubic-bezier(.2,.9,.3,1),opacity .22s}
+  .modal.show{transform:translateY(0) scale(1);opacity:1}
+  .modal.closing{transform:translateY(16px) scale(.96);opacity:0}
+  .modal h3{margin:0 0 10px 0;font-size:18px;color:var(--prc-navy)}
+  .modal p{margin:6px 0 14px;color:#444;font-size:14px}
+  .row{display:flex;gap:8px;margin-bottom:8px}
+  .btn-secondary{background:#6c757d;color:#fff;border:none;padding:11px 16px;border-radius:var(--r-pill);cursor:pointer;font-weight:600}
+  .btn-danger{background:var(--danger);color:#fff;border:none;padding:11px 16px;border-radius:var(--r-pill);cursor:pointer;font-weight:600}
+  .btn-danger:hover{background:#a92828}
+
+  .login-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(10,47,107,0.88),rgba(13,91,196,0.78));backdrop-filter:blur(6px);z-index:20000;opacity:0;pointer-events:none;transition:opacity .3s ease}
+  .login-overlay.show{opacity:1;pointer-events:all}
+  .login-card{width:94%;max-width:400px;background:#fff;border-radius:var(--r-lg);padding:32px 24px 28px;box-shadow:0 30px 60px rgba(0,0,0,0.20);transform:translateY(20px) scale(0.96);transition:transform .35s cubic-bezier(.2,.9,.3,1),opacity .3s ease;opacity:0;text-align:center}
+  .login-overlay.show .login-card{transform:translateY(0) scale(1);opacity:1}
+  .login-card .brand-icon{margin:0 auto 12px;width:60px;height:60px;font-size:28px;border-radius:30px;background:#fff;color:var(--prc-navy);display:flex;align-items:center;justify-content:center;padding:8px;overflow:hidden;box-shadow:0 2px 8px rgba(10,47,107,0.10)}
+  .login-card .brand-icon img{width:100%;height:100%;object-fit:contain}
+  .login-card h2{font-weight:700;font-size:1.5rem;color:var(--prc-navy);margin:4px 0 4px}
+  .login-card .sub2{color:var(--muted);font-size:0.85rem;margin-bottom:4px}
+  .login-card .sub{color:var(--muted);font-size:0.9rem;margin-bottom:20px}
+  .login-field-wrap{display:flex;flex-direction:column;gap:12px;margin:10px 0 12px}
+  .login-text-input{width:100%;height:52px;font-size:16px;text-align:left;border-radius:var(--r-pill);border:1px solid #d6dce6;background:#f8faff;padding:0 22px;transition:all .2s;font-weight:500;color:var(--prc-navy)}
+  .login-text-input:focus{border-color:var(--prc-blue);box-shadow:0 0 0 4px rgba(13,91,196,0.10);background:#fff;outline:none}
+  .login-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin-top:18px}
+  .login-error{color:var(--danger);font-size:0.85rem;min-height:1.6rem;width:100%}
+  .btn-outline{background:transparent;border:1px solid #d0dbe8;padding:12px 20px;border-radius:var(--r-pill);font-weight:500;color:#1f3a5f;cursor:pointer;transition:.15s}
+  .btn-outline:hover{background:#f0f4fe}
+  .btn-solid{background:var(--prc-blue);border:none;padding:12px 28px;border-radius:var(--r-pill);font-weight:600;color:#fff;cursor:pointer;transition:.15s;box-shadow:0 8px 16px rgba(13,91,196,0.20)}
+  .btn-solid:hover{background:#0947a0;transform:scale(.97)}
+
+  @media (max-width:900px){ #currentTicket{font-size:22px} #dailySummaryChartInner,#previousDayChartInner{height:220px} .top-grid{flex-direction:column} .top-section{max-height:none;overflow-y:visible} .priority-watch-col{min-width:0} .controls-col{min-width:0} .summary-grid,.charts-wrap{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+  <div id="toastStack"></div>
+
+  <div class="wrap" id="appContent" aria-hidden="true">
+    <div class="appbar">
+      <div class="brand">
+        <div class="brand-badge"><img src="https://i.imgur.com/DcctCpR.png" alt="PRC" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🎧'}))" /></div>
+        <div><h2>Staff Counter Panel</h2><div class="sub"><span class="live-dot"></span> PRC Robinsons Starmills — Live</div></div>
+      </div>
+      <div class="appbar-actions">
+        <button id="openReportsBtn" class="icon-btn" style="background:#20c997;color:#fff" title="Download reports">📊 Reports</button>
+        <button id="openAddCounterBtn" class="icon-btn add" title="Admin: Add Counter" aria-hidden="true">➕ Add Counter</button>
+        <button id="openDeleteCounterBtn" class="icon-btn" style="background:#c82333;color:#fff" title="Admin: Delete Counter" aria-hidden="true">🗑️ Delete Counter</button>
+        <button id="logoutBtn" class="icon-btn logout" aria-hidden="true">Logout</button>
+      </div>
+    </div>
+
+    <div class="top-section">
+      <div class="top-grid">
+        <div class="priority-watch-col">
+          <div class="priority-watch">
+            <h4>⭐ Priority Watch — Waiting</h4>
+            <div class="note">Priority Transaction tickets currently waiting, oldest first, updating live.</div>
+            <div class="pw-list" id="priorityWatchList"><div class="pw-empty">Loading…</div></div>
+          </div>
+        </div>
+
+        <div class="controls-col">
+          <div id="datetimeDisplay">Loading date &amp; time...</div>
+
+          <div class="controls-row">
+            <div class="control-field">
+              <label for="counter">Counter</label>
+              <select id="counter"></select>
+            </div>
+            <div class="control-field">
+              <label for="transactionType">Transaction Type</label>
+              <select id="transactionType"><option value="">All Transactions</option></select>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px">
+            <button id="callNextBtn">📣 Call Next</button>
+            <button id="recallBtn">🔁 Recall Previous</button>
+            <button id="markDoneBtn">✅ Mark as Done</button>
+            <button id="transferBtn" style="background:#6f42c1;box-shadow:0 6px 14px rgba(111,66,193,0.22)">🔀 Transfer Client</button>
+            <button id="resetBtn">🧹 Reset Queue</button>
+          </div>
+
+          <div id="status"></div>
+
+          <div id="currentTicketCard">
+            <div class="kicker">Currently Serving</div>
+            <div id="currentTicket">No active ticket</div>
+            <div id="currentTicketMeta"></div>
+            <div id="currentTicketBadgeWrap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:14px;color:var(--prc-blue);">📊 Queue Summary (Waiting Clients)</h3>
+
+    <div class="summary-grid" id="summaryGrid">
+      <div class="summary-card" id="groupMajor">
+        <h4>Major Transactions</h4>
+        <div class="summary-list" id="majorList"></div>
+        <div class="summary-note"><span class="live-dot"></span> Live — updates instantly</div>
+      </div>
+      <div class="summary-card special" id="groupSpecial">
+        <h4>Special &amp; Priority Transactions</h4>
+        <div class="summary-list" id="specialList"></div>
+        <div class="summary-note">Counts are waiting clients only</div>
+      </div>
+    </div>
+
+    <div class="charts-wrap">
+      <div class="chart-card">
+        <h4><span class="live-dot"></span> Daily Summary</h4>
+        <div class="chart-date-label" id="dailyChartDate">Today</div>
+        <div id="dailySummaryChartInner"></div>
+      </div>
+      <div class="chart-card">
+        <h4>📆 Previous Day Summary</h4>
+        <div class="chart-date-label" id="previousChartDate">Yesterday</div>
+        <div id="previousDayChartInner"></div>
+      </div>
+    </div>
+
+    <details class="analytics-more" id="moreAnalyticsDetails">
+      <summary>More analytics (today)</summary>
+      <div class="analytics-grid" id="analyticsGrid"></div>
+    </details>
+  </div>
+
+  <!-- Reset modal -->
+  <div class="modal-backdrop" id="modalBackdrop" tabindex="-1">
+    <div class="modal" id="resetModal">
+      <h3>⚠️ Confirm System Reset</h3>
+      <div style="background:#fff3cd;color:#856404;padding:12px;border-radius:var(--r-md);border:1px solid #ffeeba;margin-bottom:12px">This starts a new queue cycle. Old tickets stay in the database as history, but stop appearing as active.</div>
+      <p><b>Reset Authorized By:</b></p>
+      <input type="text" id="resetActor" placeholder="Enter your name" autocomplete="off" style="width:100%" />
+      <p><b>Admin PIN:</b></p>
+      <div class="row"><input type="password" id="adminPin" placeholder="Enter PIN" autocomplete="off" style="flex:1" /><button class="btn-secondary" onclick="hideResetModal()">Cancel</button></div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button class="btn-danger" id="confirmResetBtn">Confirm Reset</button></div>
+      <div id="modalMessage" style="margin-top:8px;font-size:13px"></div>
+    </div>
+  </div>
+
+  <!-- Add counter modal -->
+  <div class="modal-backdrop" id="addCounterBackdrop" tabindex="-1">
+    <div class="modal" id="addCounterModal">
+      <h3>➕ Add New Counter (Admin)</h3>
+      <p style="color:#444">Enter unique Counter ID (e.g. <em>Counter 8</em>).</p>
+      <label style="display:block;font-weight:700;margin-bottom:6px;text-align:left">Counter ID</label>
+      <input id="newCounterId" type="text" placeholder="e.g. Counter 8" autocomplete="off" style="width:100%" />
+      <label style="display:block;font-weight:700;margin:12px 0 6px;text-align:left">Admin PIN</label>
+      <input id="newAdminPin" type="password" placeholder="Enter admin PIN" autocomplete="off" style="width:100%" />
+      <div id="addCounterMessage" style="min-height:20px;margin-top:10px;font-size:13px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" onclick="hideAddCounterModal()">Cancel</button><button id="addCounterBtn" onclick="submitAddCounter()">Add Counter</button></div>
+    </div>
+  </div>
+
+  <!-- Delete counter modal -->
+  <div class="modal-backdrop" id="deleteCounterBackdrop" tabindex="-1">
+    <div class="modal" id="deleteCounterModal">
+      <h3>🗑️ Delete Counter (Admin)</h3>
+      <p style="color:#444">This permanently removes the counter. It cannot be currently serving a client.</p>
+      <label style="display:block;font-weight:700;margin-bottom:6px;text-align:left">Counter to delete</label>
+      <select id="deleteCounterSelect" style="width:100%"></select>
+      <label style="display:block;font-weight:700;margin:12px 0 6px;text-align:left">Admin PIN</label>
+      <input id="deleteAdminPin" type="password" placeholder="Enter admin PIN" autocomplete="off" style="width:100%" />
+      <div id="deleteCounterMessage" style="min-height:20px;margin-top:10px;font-size:13px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" onclick="hideDeleteCounterModal()">Cancel</button><button id="deleteCounterBtn" class="btn-danger" onclick="submitDeleteCounter()">Delete Counter</button></div>
+    </div>
+  </div>
+
+  <!-- Confirm action modal -->
+  <div class="modal-backdrop" id="actionConfirmBackdrop" tabindex="-1">
+    <div class="modal" id="actionConfirmPanel">
+      <h3 id="actionConfirmTitle">Confirm action</h3>
+      <p id="actionConfirmText">Are you sure?</p>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px">
+        <button class="btn-secondary" id="actionCancelBtn">Cancel</button>
+        <button id="actionConfirmBtn">Yes</button>
+      </div>
+      <div id="actionConfirmMsg" style="margin-top:8px;font-size:13px"></div>
+    </div>
+  </div>
+
+  <!-- Transfer client modal -->
+  <div class="modal-backdrop" id="transferBackdrop" tabindex="-1">
+    <div class="modal" id="transferModal">
+      <h3>🔀 Transfer Client</h3>
+      <p style="color:#444">Marks the current ticket at <b id="transferFromCounter">this counter</b> as done, and issues a new <b>T-XXX</b> ticket for the service the client actually needs. That new ticket jumps ahead of the regular line for that service.</p>
+      <label style="display:block;font-weight:700;margin-bottom:6px;text-align:left">Transfer to service</label>
+      <select id="transferServiceSelect" style="width:100%"></select>
+      <div id="transferMessage" style="min-height:20px;margin-top:10px;font-size:13px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="btn-secondary" id="transferCancelBtn">Cancel</button>
+        <button id="transferConfirmBtn" style="background:#6f42c1">Transfer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports modal -->
+  <div class="modal-backdrop" id="reportsBackdrop" tabindex="-1">
+    <div class="modal" id="reportsModal" style="width:420px">
+      <h3>📊 Download Reports</h3>
+      <p style="color:#444">Completed transactions in the selected date range, with per-service totals and average processing time.</p>
+      <div class="row">
+        <div style="flex:1;text-align:left">
+          <label style="display:block;font-weight:700;margin-bottom:6px;font-size:13px">From</label>
+          <input type="date" id="reportStartDate" style="width:100%" />
+        </div>
+        <div style="flex:1;text-align:left">
+          <label style="display:block;font-weight:700;margin-bottom:6px;font-size:13px">To</label>
+          <input type="date" id="reportEndDate" style="width:100%" />
+        </div>
+      </div>
+      <div id="reportsMessage" style="min-height:20px;margin-top:6px;font-size:13px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
+        <button class="btn-secondary" id="reportsCancelBtn">Cancel</button>
+        <button id="downloadExcelBtn" style="background:#1e7e34">⬇️ Excel</button>
+        <button id="downloadPdfBtn" style="background:#c82333">⬇️ PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout modal -->
+  <div class="modal-backdrop" id="logoutModal" style="z-index:30002" tabindex="-1">
+    <div class="modal" id="logoutPanel">
+      <h3 style="color:var(--prc-navy)">Logout</h3>
+      <p>Are you sure you want to logout? You will need to re-enter the staff PIN to use the panel again.</p>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" id="logoutCancelBtn">Cancel</button><button class="btn-danger" id="logoutConfirmBtn">Yes, Logout</button></div>
+    </div>
+  </div>
+
+  <!-- Login overlay -->
+  <div id="loginOverlay" class="login-overlay show">
+    <div class="login-card">
+      <div class="brand-icon"><img src="https://i.imgur.com/DcctCpR.png" alt="PRC" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🎧'}))" /></div>
+      <h2>PRC Robinsons Starmills</h2>
+      <div class="sub2">Staff Counter Panel</div>
+      <div class="sub">Sign in with your staff account</div>
+      <div class="login-field-wrap">
+        <input id="loginUsername" class="login-text-input" type="text" placeholder="Username" autocomplete="username" />
+        <input id="loginPassword" class="login-text-input" type="password" placeholder="Password" autocomplete="current-password" />
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-actions">
+        <button id="helpBtn" class="btn-outline" style="padding:10px 16px;font-size:0.9rem;">help</button>
+        <button id="clearBtn" class="btn-outline" style="padding:10px 16px;">clear</button>
+        <button id="loginBtn" class="btn-solid">sign in</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script type="module">
+import {
+  SERVICES, addCounter, deleteCounter, resetQueueSystem, callNext, recallPrevious, markDone, transferClient,
+  listenCounters, listenCounter, listenWaitingSummary, listenWaitingQueue, listenDailySummary, cleanupStaleCounters,
+  getCompletedTicketsInRange, getManilaDateString, getManilaYesterdayString
+} from "./queue-core.js";
+
+const CODE_TO_NAME = Object.fromEntries(SERVICES.map(s => [s.code, s.name]));
+const GROUP_MAJOR = ["C","A","EA","R","IR","D"];
+const GROUP_SPECIAL = ["SV","COR","PR","RES","MED","RDA"];
+const VALID_USERNAME = "starmills";
+const VALID_PASSWORD = "6767";
+
+const toastStack = document.getElementById('toastStack');
+function toast(msg, kind='') {
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  el.textContent = msg;
+  toastStack.appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(()=> el.remove(), 260); }, 3200);
+}
+
+// Any background listener failure (most commonly: a missing Firestore index)
+// now shows up here instead of only in the browser console.
+window.__queueCoreOnError = (err) => {
+  const el = document.createElement('div');
+  el.className = 'toast error';
+  el.style.cursor = 'pointer';
+  el.textContent = '⚠️ Live update failed — click to see details in console.';
+  el.title = err && err.message ? err.message : String(err);
+  el.addEventListener('click', () => el.remove());
+  toastStack.appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(()=> el.remove(), 260); }, 12000); // stays longer than normal toasts since it needs action
+};
+
+const loginOverlay = document.getElementById('loginOverlay');
+const usernameInput = document.getElementById('loginUsername');
+const passwordInput = document.getElementById('loginPassword');
+const loginBtn = document.getElementById('loginBtn');
+const clearBtn = document.getElementById('clearBtn');
+const helpBtn = document.getElementById('helpBtn');
+const loginError = document.getElementById('loginError');
+const appContent = document.getElementById('appContent');
+const logoutBtn = document.getElementById('logoutBtn');
+const openAddCounterBtn = document.getElementById('openAddCounterBtn');
+const openDeleteCounterBtn = document.getElementById('openDeleteCounterBtn');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const confirmResetBtn = document.getElementById('confirmResetBtn');
+const addCounterBackdrop = document.getElementById('addCounterBackdrop');
+const addCounterModal = document.getElementById('addCounterModal');
+const actionConfirmBackdrop = document.getElementById('actionConfirmBackdrop');
+const actionConfirmPanel = document.getElementById('actionConfirmPanel');
+const actionConfirmTitle = document.getElementById('actionConfirmTitle');
+const actionConfirmText = document.getElementById('actionConfirmText');
+const actionConfirmBtn = document.getElementById('actionConfirmBtn');
+const actionCancelBtn = document.getElementById('actionCancelBtn');
+const actionConfirmMsg = document.getElementById('actionConfirmMsg');
+const logoutModal = document.getElementById('logoutModal');
+const logoutPanel = document.getElementById('logoutPanel');
+const logoutCancelBtn = document.getElementById('logoutCancelBtn');
+const logoutConfirmBtn = document.getElementById('logoutConfirmBtn');
+const majorListEl = document.getElementById('majorList');
+const specialListEl = document.getElementById('specialList');
+const priorityWatchList = document.getElementById('priorityWatchList');
+const datetimeDisplay = document.getElementById('datetimeDisplay');
+const dailyChartDate = document.getElementById('dailyChartDate');
+const previousChartDate = document.getElementById('previousChartDate');
+const currentTicketCard = document.getElementById('currentTicketCard');
+const currentTicketEl = document.getElementById('currentTicket');
+const currentTicketMetaEl = document.getElementById('currentTicketMeta');
+const currentTicketBadgeWrap = document.getElementById('currentTicketBadgeWrap');
+
+let unsubCounters=null, unsubCurrentCounter=null, unsubSummary=null, unsubPriorityWatch=null, unsubDailyChart=null, unsubPrevChart=null;
+let intervalDateTime = null;
+let knownCounterIds = [];
+let lastTicketSeen = null;
+let lastCounts = {};
+
+function updateDateTime() {
+  const now = new Date();
+  datetimeDisplay.textContent = '🕐 ' + now.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true });
+}
+function updateChartDates() {
+  const todayStr = getManilaDateString();
+  const yStr = getManilaYesterdayString();
+  const fmt = (dStr) => new Date(`${dStr}T00:00:00+08:00`).toLocaleDateString('en-US', { timeZone: 'Asia/Manila', year:'numeric', month:'short', day:'numeric' });
+  dailyChartDate.textContent = '📅 ' + fmt(todayStr);
+  previousChartDate.textContent = '📆 ' + fmt(yStr);
+}
+
+function showLoginOverlay(){
+  loginOverlay.classList.add('show');
+  appContent.style.display = 'none'; appContent.setAttribute('aria-hidden','true');
+  logoutBtn.style.display = 'none'; openAddCounterBtn.style.display = 'none'; openDeleteCounterBtn.style.display = 'none';
+  stopAllListeners();
+  usernameInput.value = ''; passwordInput.value = ''; usernameInput.focus(); loginError.textContent = '';
+}
+function revealMain(){
+  loginOverlay.classList.remove('show');
+  appContent.style.display = 'block'; appContent.setAttribute('aria-hidden','false');
+  logoutBtn.style.display = 'inline-block'; openAddCounterBtn.style.display = 'inline-block'; openDeleteCounterBtn.style.display = 'inline-block';
+  startAllListeners();
+  updateDateTime(); updateChartDates();
+  if (intervalDateTime) clearInterval(intervalDateTime);
+  intervalDateTime = setInterval(updateDateTime, 1000);
+}
+function attemptLogin(){
+  loginError.textContent = '';
+  const u = (usernameInput.value||'').trim();
+  const p = (passwordInput.value||'').trim();
+  if (!u || !p){ loginError.textContent = 'Enter your username and password.'; return; }
+  loginBtn.disabled=true; loginBtn.textContent='Checking...';
+  setTimeout(()=> {
+    if (u === VALID_USERNAME && p === VALID_PASSWORD){ revealMain(); }
+    else {
+      loginError.textContent = 'Invalid username or password. Try again.';
+      const card = document.querySelector('.login-card');
+      card.style.transform = 'translateX(-6px)'; setTimeout(()=> card.style.transform='translateX(6px)',80); setTimeout(()=> card.style.transform='translateX(0)',160);
+      passwordInput.value=''; passwordInput.focus();
+    }
+    loginBtn.disabled=false; loginBtn.textContent='Sign in';
+  }, 220);
+}
+clearBtn.addEventListener('click', ()=> { usernameInput.value=''; passwordInput.value=''; usernameInput.focus(); loginError.textContent='';});
+helpBtn.addEventListener('click', ()=> loginError.textContent='Ask your supervisor for the staff login.');
+usernameInput.addEventListener('keydown', e => { if (e.key==='Enter') passwordInput.focus(); });
+passwordInput.addEventListener('keydown', e => { if (e.key==='Enter') attemptLogin(); });
+loginBtn.addEventListener('click', attemptLogin);
+
+function countClass(n){ if(n>=10) return 'red'; if(n>=5) return 'orange'; return 'green'; }
+function mkItemRow(labelText, count){
+  const wrap = document.createElement('div'); wrap.className = 'summary-item';
+  const lbl = document.createElement('div'); lbl.className='label'; lbl.textContent = labelText;
+  const cnt = document.createElement('div'); cnt.className='count ' + countClass(Number(count||0)); cnt.textContent = Number(count||0);
+  cnt.dataset.label = labelText;
+  wrap.appendChild(lbl); wrap.appendChild(cnt);
+  return wrap;
+}
+function isPriorityService(service){ return (service || '').toLowerCase().includes('priority'); }
+function timeAgo(iso){
+  if(!iso) return '';
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime())/60000));
+  if (mins < 1) return 'just now';
+  if (mins === 1) return '1 min waiting';
+  if (mins < 60) return `${mins} min waiting`;
+  return `${Math.floor(mins/60)}h ${mins%60}m waiting`;
+}
+
+function renderSummary(counts){
+  majorListEl.innerHTML=''; specialListEl.innerHTML='';
+  GROUP_MAJOR.forEach(code => majorListEl.appendChild(mkItemRow(CODE_TO_NAME[code] || code, counts[CODE_TO_NAME[code]] || 0)));
+  GROUP_SPECIAL.forEach(code => specialListEl.appendChild(mkItemRow(CODE_TO_NAME[code] || code, counts[CODE_TO_NAME[code]] || 0)));
+  document.querySelectorAll('.summary-item .count').forEach(el => {
+    const label = el.dataset.label;
+    const prev = lastCounts[label];
+    const cur = counts[label] || 0;
+    if (prev !== undefined && prev !== cur) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  });
+  lastCounts = counts;
+}
+function renderPriorityWatch(tickets){
+  priorityWatchList.innerHTML = '';
+  if (!tickets || tickets.length === 0) { priorityWatchList.innerHTML = '<div class="pw-empty">No priority tickets waiting.</div>'; return; }
+  tickets.forEach(t=>{
+    const row = document.createElement('div'); row.className = 'pw-item';
+    row.innerHTML = `<div class="ticket">${t.ticket}</div><div class="type">${t.transactionType ? t.transactionType : '<span style="color:#a33">Type not set</span>'}</div><div class="wait">${timeAgo(t.timestamp)}</div>`;
+    priorityWatchList.appendChild(row);
+  });
+}
+function renderCurrentTicket(data){
+  const newTicket = data && data.ticket ? data.ticket : null;
+  if (data && data.ticket){
+    const priority = isPriorityService(data.service);
+    currentTicketEl.textContent = data.ticket;
+    currentTicketMetaEl.textContent = data.service || '—';
+    currentTicketCard.classList.toggle('priority', priority);
+    if (data.transactionType) currentTicketBadgeWrap.innerHTML = `<span id="currentTicketBadge">${priority ? '⭐ Priority — ' : ''}${data.transactionType}</span>`;
+    else if (priority) currentTicketBadgeWrap.innerHTML = `<span id="currentTicketBadge">⭐ Priority — type not set</span>`;
+    else currentTicketBadgeWrap.innerHTML = '';
+  } else {
+    currentTicketEl.textContent = 'No active ticket';
+    currentTicketMetaEl.textContent = ''; currentTicketBadgeWrap.innerHTML = '';
+    currentTicketCard.classList.remove('priority');
+  }
+  if (newTicket !== lastTicketSeen) {
+    currentTicketEl.classList.remove('pop'); void currentTicketEl.offsetWidth; currentTicketEl.classList.add('pop');
+    lastTicketSeen = newTicket;
+  }
+}
+
+function watchCurrentCounter(counterId){
+  if (unsubCurrentCounter) unsubCurrentCounter();
+  if (!counterId) { renderCurrentTicket(null); return; }
+  unsubCurrentCounter = listenCounter(counterId, renderCurrentTicket);
+}
+
+function loadCounters(){
+  return new Promise(resolve => {
+    if (unsubCounters) unsubCounters();
+    unsubCounters = listenCounters(list => {
+      const ids = list.map(c => c.counterId);
+      const sel = document.getElementById('counter');
+      const idsChanged = ids.join(',') !== knownCounterIds.join(',');
+      if (idsChanged) {
+        const prev = sel.value || '';
+        sel.innerHTML = '';
+        list.forEach(c => { const opt = document.createElement('option'); opt.value = c.counterId; opt.textContent = c.counterId; sel.appendChild(opt); });
+        knownCounterIds = ids;
+        if (prev && ids.includes(prev)) sel.value = prev;
+        watchCurrentCounter(sel.value);
+        sel.onchange = () => watchCurrentCounter(sel.value);
+      }
+      totalCountersCount = list.length;
+      activeCountersCount = list.filter(c => c.status === 'Now Serving').length;
+      renderAnalytics();
+      resolve();
+    });
+  });
+}
+function loadServices(){
+  const select = document.getElementById('transactionType');
+  select.innerHTML = '<option value="">All Transactions</option>';
+  SERVICES.forEach(svc => { const opt=document.createElement('option'); opt.value=svc.name; opt.textContent=`${svc.code} - ${svc.name}`; select.appendChild(opt); });
+}
+
+try { google.charts.load('current', {'packages':['corechart']}); } catch (e) { console.warn('Google Charts failed to load — charts will be unavailable.', e); }
+function drawChart(containerId, labels, values, color, legend){
+  const container = document.getElementById(containerId);
+  if(typeof google === 'undefined' || !google.visualization){ container.textContent='(chart unavailable)'; return; }
+  if (!labels.length) { container.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:40px 0">No data yet</div>'; return; }
+  container.style.opacity = '0.4';
+  requestAnimationFrame(() => {
+    const arr = [['Counter','Count']]; for(let i=0;i<labels.length;i++) arr.push([labels[i]||('Item'+i), Number(values[i]||0)]);
+    const data = google.visualization.arrayToDataTable(arr);
+    const chart = new google.visualization.ColumnChart(container);
+    chart.draw(data, {legend:{position:legend},chartArea:{left:60,top:20,width:'80%',height:'70%'},height:240,colors:[color],animation:{duration:400,easing:'out'}});
+    container.style.opacity = '1';
+  });
+}
+
+function startDailyChartListener(){
+  if (unsubDailyChart) unsubDailyChart();
+  unsubDailyChart = listenDailySummary(null, j => {
+    const entries = Object.entries(j.perCounter || {});
+    drawChart('dailySummaryChartInner', entries.map(e=>e[0]), entries.map(e=>e[1]), '#0d5bc4', 'none');
+  });
+}
+function loadPreviousDayChart(){
+  const dateStr = getManilaYesterdayString();
+  if (unsubPrevChart) unsubPrevChart();
+  unsubPrevChart = listenDailySummary(dateStr, j => {
+    const entries = Object.entries(j.perCounter || {});
+    drawChart('previousDayChartInner', entries.map(e=>e[0]), entries.map(e=>e[1]), '#0a2f6b', 'top');
+  });
+}
+
+function openActionConfirm(actionName){
+  const counter = document.getElementById('counter').value;
+  const service = document.getElementById('transactionType').value;
+  if (!counter){ toast('⚠️ Please select your counter.', 'error'); return; }
+  let title='Confirm action', text='Are you sure?';
+  if (actionName === 'callNext'){
+    if (!service){ toast('⚠️ Please select a specific transaction type before calling next.', 'error'); return; }
+    title = 'Confirm Call Next';
+    text = `Call next for ${document.getElementById('transactionType').selectedOptions[0].text} at ${counter}?`;
+  } else if (actionName === 'recallPrevious'){ title = 'Confirm Recall'; text = `Recall previous ticket for ${counter}?`; }
+  else if (actionName === 'markDone'){ title = 'Confirm Mark Done'; text = `Mark current ticket at ${counter} as done?`; }
+  actionConfirmTitle.textContent = title; actionConfirmText.textContent = text; actionConfirmMsg.textContent = '';
+  actionConfirmBackdrop.style.display = 'flex'; actionConfirmPanel.classList.add('show');
+  const handler = async () => {
+    actionConfirmBtn.disabled = true; actionConfirmMsg.textContent = '⏳ Processing...';
+    actionConfirmBtn.removeEventListener('click', handler);
+    try {
+      let msg = '';
+      if (actionName==='callNext'){ const r = await callNext(counter, service); msg = `✅ Now Serving ${r.ticket} — ${r.service}${r.transactionType ? ` (${r.transactionType})` : ''} at ${r.counter}`; }
+      else if (actionName==='recallPrevious'){ const r = await recallPrevious(counter); msg = `🔁 Recalled ${r.ticket} — ${r.service}${r.transactionType ? ` (${r.transactionType})` : ''} at ${r.counter}`; }
+      else if (actionName==='markDone'){ const r = await markDone(counter); msg = `✅ ${r.message}`; refreshTodayStats(); }
+      actionConfirmMsg.textContent = msg; toast(msg, 'success');
+    } catch (err) {
+      actionConfirmMsg.textContent = `⚠️ ${err.message || 'Failed'}`; toast(actionConfirmMsg.textContent, 'error');
+    }
+    actionConfirmBtn.disabled = false;
+    setTimeout(closeActionConfirm, 400);
+  };
+  actionConfirmBtn.addEventListener('click', handler);
+  actionCancelBtn.onclick = closeActionConfirm;
+}
+function closeActionConfirm(){
+  actionConfirmPanel.classList.remove('show'); actionConfirmPanel.classList.add('closing');
+  setTimeout(()=>{ actionConfirmBackdrop.style.display='none'; actionConfirmPanel.classList.remove('closing'); actionConfirmMsg.textContent=''; }, 260);
+}
+
+function showResetModal(){
+  document.getElementById('adminPin').value=''; document.getElementById('resetActor').value=''; document.getElementById('modalMessage').textContent='';
+  modalBackdrop.style.display='flex';
+  const panel = document.getElementById('resetModal'); panel.classList.remove('closing'); panel.classList.add('show');
+  setTimeout(()=> document.getElementById('resetActor').focus(), 80);
+}
+function hideResetModal(){
+  const panel = document.getElementById('resetModal'); panel.classList.remove('show'); panel.classList.add('closing');
+  setTimeout(()=> { modalBackdrop.style.display='none'; panel.classList.remove('closing'); }, 260);
+}
+window.hideResetModal = hideResetModal;
+confirmResetBtn.addEventListener('click', async () => {
+  const pin = document.getElementById('adminPin').value.trim();
+  const actor = document.getElementById('resetActor').value.trim();
+  if (!actor){ document.getElementById('modalMessage').textContent = '⚠️ Please enter your name.'; return; }
+  document.getElementById('modalMessage').textContent = '⏳ Processing reset...'; confirmResetBtn.disabled = true;
+  try {
+    await resetQueueSystem(pin, actor);
+    hideResetModal();
+    currentTicketCard.style.animation = 'none'; void currentTicketCard.offsetWidth; currentTicketCard.style.animation = '';
+    toast(`✅ Queue reset successfully by ${actor}.`, 'success');
+  } catch (err) {
+    document.getElementById('modalMessage').textContent = '❌ ' + (err.message.includes('permission') ? 'Invalid admin PIN.' : (err.message || 'Reset failed'));
+  }
+  confirmResetBtn.disabled = false;
+});
+document.getElementById('resetActor').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminPin').focus(); } });
+document.getElementById('adminPin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); confirmResetBtn.click(); } });
+
+function showAddCounterModal(){ addCounterBackdrop.style.display='flex'; addCounterModal.classList.remove('closing'); addCounterModal.classList.add('show'); setTimeout(()=> document.getElementById('newCounterId').focus(),80); }
+function hideAddCounterModal(){ addCounterModal.classList.remove('show'); addCounterModal.classList.add('closing'); setTimeout(()=> { addCounterBackdrop.style.display='none'; addCounterModal.classList.remove('closing'); }, 260); }
+window.hideAddCounterModal = hideAddCounterModal;
+window.submitAddCounter = async function submitAddCounter(){
+  const idEl = document.getElementById('newCounterId'); const pinEl = document.getElementById('newAdminPin');
+  const msgEl = document.getElementById('addCounterMessage'); const btn = document.getElementById('addCounterBtn');
+  const counterId = (idEl.value||'').trim(); const adminPin = (pinEl.value||'').trim();
+  if (!counterId){ msgEl.textContent='⚠️ Please enter a Counter ID.'; idEl.focus(); return; }
+  if (!adminPin){ msgEl.textContent='⚠️ Admin PIN required.'; pinEl.focus(); return; }
+  btn.disabled=true; const prev = btn.textContent||''; btn.textContent='Adding...'; msgEl.textContent='⏳ Adding counter...';
+  try {
+    await addCounter(counterId, adminPin, '');
+    msgEl.textContent = `✅ Counter ${counterId} added.`;
+    toast(`✅ Counter ${counterId} added.`, 'success');
+    setTimeout(()=> { hideAddCounterModal(); const sel = document.getElementById('counter'); if (sel) sel.focus(); },900);
+  } catch (err) {
+    msgEl.textContent = '❌ ' + (err.message.includes('permission') ? 'Invalid admin PIN.' : (err.message || 'Add failed.'));
+  }
+  btn.disabled=false; btn.textContent = prev;
+};
+document.getElementById('openAddCounterBtn').addEventListener('click', ()=> { if (openAddCounterBtn.style.display !== 'none') showAddCounterModal(); });
+document.getElementById('newCounterId').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('newAdminPin').focus(); } });
+document.getElementById('newAdminPin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); window.submitAddCounter(); } });
+
+const deleteCounterBackdrop = document.getElementById('deleteCounterBackdrop');
+const deleteCounterModal = document.getElementById('deleteCounterModal');
+function showDeleteCounterModal(){
+  const sel = document.getElementById('deleteCounterSelect');
+  sel.innerHTML = '';
+  knownCounterIds.forEach(id => { const opt = document.createElement('option'); opt.value = id; opt.textContent = id; sel.appendChild(opt); });
+  if (knownCounterIds.length === 0) { const opt = document.createElement('option'); opt.value=''; opt.textContent='No counters available'; sel.appendChild(opt); }
+  document.getElementById('deleteAdminPin').value = '';
+  document.getElementById('deleteCounterMessage').textContent = '';
+  deleteCounterBackdrop.style.display='flex'; deleteCounterModal.classList.remove('closing'); deleteCounterModal.classList.add('show');
+  setTimeout(()=> document.getElementById('deleteAdminPin').focus(), 80);
+}
+function hideDeleteCounterModal(){ deleteCounterModal.classList.remove('show'); deleteCounterModal.classList.add('closing'); setTimeout(()=> { deleteCounterBackdrop.style.display='none'; deleteCounterModal.classList.remove('closing'); }, 260); }
+window.hideDeleteCounterModal = hideDeleteCounterModal;
+window.submitDeleteCounter = async function submitDeleteCounter(){
+  const sel = document.getElementById('deleteCounterSelect'); const pinEl = document.getElementById('deleteAdminPin');
+  const msgEl = document.getElementById('deleteCounterMessage'); const btn = document.getElementById('deleteCounterBtn');
+  const counterId = sel.value; const adminPin = (pinEl.value||'').trim();
+  if (!counterId){ msgEl.textContent='⚠️ No counter selected.'; return; }
+  if (!adminPin){ msgEl.textContent='⚠️ Admin PIN required.'; pinEl.focus(); return; }
+  btn.disabled=true; const prev = btn.textContent||''; btn.textContent='Deleting...'; msgEl.textContent='⏳ Deleting counter...';
+  try {
+    await deleteCounter(counterId, adminPin, '');
+    msgEl.textContent = `✅ Counter ${counterId} deleted.`;
+    toast(`🗑️ Counter ${counterId} deleted.`, 'success');
+    setTimeout(hideDeleteCounterModal, 900);
+  } catch (err) {
+    msgEl.textContent = '❌ ' + (err.message && err.message.includes('permission') ? 'Invalid admin PIN.' : (err.message || 'Delete failed.'));
+  }
+  btn.disabled=false; btn.textContent = prev;
+};
+openDeleteCounterBtn.addEventListener('click', ()=> { if (openDeleteCounterBtn.style.display !== 'none') showDeleteCounterModal(); });
+document.getElementById('deleteAdminPin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); window.submitDeleteCounter(); } });
+
+function openLogoutModal(){ logoutModal.style.display='flex'; logoutPanel.classList.remove('closing'); logoutPanel.classList.add('show'); setTimeout(()=> logoutCancelBtn.focus(), 80); }
+function closeLogoutModal(){ logoutPanel.classList.remove('show'); logoutPanel.classList.add('closing'); setTimeout(()=> { logoutModal.style.display='none'; logoutPanel.classList.remove('closing'); }, 260); }
+logoutCancelBtn.addEventListener('click', closeLogoutModal);
+logoutConfirmBtn.addEventListener('click', ()=> { closeLogoutModal(); setTimeout(showLoginOverlay,180); });
+logoutBtn.addEventListener('click', ()=> { if (logoutBtn.style.display !== 'none') openLogoutModal(); });
+
+document.getElementById('callNextBtn').addEventListener('click', ()=> openActionConfirm('callNext'));
+document.getElementById('recallBtn').addEventListener('click', ()=> openActionConfirm('recallPrevious'));
+document.getElementById('markDoneBtn').addEventListener('click', ()=> openActionConfirm('markDone'));
+document.getElementById('resetBtn').addEventListener('click', showResetModal);
+
+// ---------- Transfer Client ----------
+const transferBackdrop = document.getElementById('transferBackdrop');
+const transferModal = document.getElementById('transferModal');
+const transferServiceSelect = document.getElementById('transferServiceSelect');
+const transferMessage = document.getElementById('transferMessage');
+const transferFromCounter = document.getElementById('transferFromCounter');
+const transferConfirmBtn = document.getElementById('transferConfirmBtn');
+
+function showTransferModal(){
+  const counter = document.getElementById('counter').value;
+  if (!counter){ toast('⚠️ Please select your counter.', 'error'); return; }
+  if (currentTicketEl.textContent === 'No active ticket'){ toast('⚠️ No active ticket at this counter to transfer.', 'error'); return; }
+  transferFromCounter.textContent = counter;
+  transferServiceSelect.innerHTML = '';
+  SERVICES.forEach(svc => { const opt=document.createElement('option'); opt.value=svc.name; opt.textContent=`${svc.code} - ${svc.name}`; transferServiceSelect.appendChild(opt); });
+  transferMessage.textContent = '';
+  transferBackdrop.style.display='flex'; transferModal.classList.remove('closing'); transferModal.classList.add('show');
+}
+function hideTransferModal(){ transferModal.classList.remove('show'); transferModal.classList.add('closing'); setTimeout(()=>{ transferBackdrop.style.display='none'; transferModal.classList.remove('closing'); }, 260); }
+document.getElementById('transferBtn').addEventListener('click', showTransferModal);
+document.getElementById('transferCancelBtn').addEventListener('click', hideTransferModal);
+transferConfirmBtn.addEventListener('click', async () => {
+  const counter = document.getElementById('counter').value;
+  const targetService = transferServiceSelect.value;
+  transferConfirmBtn.disabled = true; transferMessage.textContent = '⏳ Transferring...';
+  try {
+    const r = await transferClient(counter, targetService);
+    transferMessage.textContent = `✅ Transferred. New ticket ${r.newTicket} (${r.targetService}) is now first in line.`;
+    toast(`🔀 Transferred — new ticket ${r.newTicket} (${r.targetService}) issued.`, 'success');
+    refreshTodayStats();
+    setTimeout(hideTransferModal, 900);
+  } catch (err) {
+    transferMessage.textContent = '❌ ' + (err.message || 'Transfer failed.');
+    toast(transferMessage.textContent, 'error');
+  }
+  transferConfirmBtn.disabled = false;
+});
+transferServiceSelect.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); transferConfirmBtn.click(); } });
+
+// ---------- Reports ----------
+const reportsBackdrop = document.getElementById('reportsBackdrop');
+const reportsModal = document.getElementById('reportsModal');
+const reportStartDate = document.getElementById('reportStartDate');
+const reportEndDate = document.getElementById('reportEndDate');
+const reportsMessage = document.getElementById('reportsMessage');
+
+function showReportsModal(){
+  const today = new Date().toISOString().slice(0,10);
+  if (!reportStartDate.value) reportStartDate.value = today;
+  if (!reportEndDate.value) reportEndDate.value = today;
+  reportsMessage.textContent = '';
+  reportsBackdrop.style.display='flex'; reportsModal.classList.remove('closing'); reportsModal.classList.add('show');
+}
+function hideReportsModal(){ reportsModal.classList.remove('show'); reportsModal.classList.add('closing'); setTimeout(()=>{ reportsBackdrop.style.display='none'; reportsModal.classList.remove('closing'); }, 260); }
+document.getElementById('openReportsBtn').addEventListener('click', showReportsModal);
+document.getElementById('reportsCancelBtn').addEventListener('click', hideReportsModal);
+
+function computeReportData(rows){
+  const perService = {}, perDay = {}, perCounter = {};
+  let totalTransferred = 0;
+  rows.forEach(r => {
+    const svc = r.service || 'Unknown';
+    if (!perService[svc]) perService[svc] = { count:0, totalProcMs:0, procCount:0 };
+    perService[svc].count++;
+    if (r.calledAt && r.doneAt) { perService[svc].totalProcMs += (r.doneAt - r.calledAt); perService[svc].procCount++; }
+    if (r.transferred) totalTransferred++;
+    const dayKey = r.doneAt ? r.doneAt.toISOString().slice(0,10) : 'unknown';
+    perDay[dayKey] = (perDay[dayKey]||0) + 1;
+    const cnt = r.counter || 'Unassigned';
+    perCounter[cnt] = (perCounter[cnt]||0) + 1;
+  });
+  const serviceRows = Object.entries(perService).map(([svc,v]) => ({
+    service: svc, count: v.count, avgProcessingMin: v.procCount ? (v.totalProcMs / v.procCount / 60000) : null
+  })).sort((a,b)=>b.count-a.count);
+  const dayRows = Object.entries(perDay).sort((a,b)=>a[0].localeCompare(b[0]));
+  const counterRows = Object.entries(perCounter).sort((a,b)=>b[1]-a[1]);
+  return { serviceRows, dayRows, counterRows, total: rows.length, totalTransferred };
+}
+
+function buildInsights(agg){
+  if (agg.total === 0) return ['No completed transactions in this date range.'];
+  const lines = [];
+  const busiest = agg.serviceRows[0];
+  lines.push(`${busiest.service} was the busiest service with ${busiest.count} completed transaction${busiest.count===1?'':'s'}.`);
+  const withProc = agg.serviceRows.filter(r=>r.avgProcessingMin!=null);
+  if (withProc.length) {
+    const slowest = withProc.reduce((a,b)=> b.avgProcessingMin>a.avgProcessingMin?b:a);
+    const fastest = withProc.reduce((a,b)=> b.avgProcessingMin<a.avgProcessingMin?b:a);
+    lines.push(`${slowest.service} had the longest average processing time at ${slowest.avgProcessingMin.toFixed(1)} minutes per transaction.`);
+    if (fastest.service !== slowest.service) lines.push(`${fastest.service} had the shortest average processing time at ${fastest.avgProcessingMin.toFixed(1)} minutes per transaction.`);
+  }
+  if (agg.dayRows.length) {
+    const busiestDay = agg.dayRows.reduce((a,b)=> b[1]>a[1]?b:a);
+    lines.push(`${busiestDay[0]} was the busiest day with ${busiestDay[1]} completed transactions.`);
+  }
+  if (agg.totalTransferred > 0) {
+    const pct = ((agg.totalTransferred/agg.total)*100).toFixed(1);
+    lines.push(`${agg.totalTransferred} transaction${agg.totalTransferred===1?'':'s'} (${pct}%) came from a counter transfer.`);
+  }
+  return lines;
+}
+
+async function fetchReportRows(){
+  const startVal = reportStartDate.value, endVal = reportEndDate.value;
+  if (!startVal || !endVal) throw new Error('Please choose both dates.');
+  if (startVal > endVal) throw new Error('Start date must be before end date.');
+  return { rows: await getCompletedTicketsInRange(startVal, endVal), startVal, endVal };
+}
+
+function downloadWorkbook(rows, agg, startVal, endVal){
+  const wb = XLSX.utils.book_new();
+  const summaryAoA = [
+    ['PRC Robinsons Starmills — Queue Report'],
+    [`${startVal} to ${endVal}`],
+    [],
+    ['Service','Completed','Avg Processing (min)'],
+    ...agg.serviceRows.map(r => [r.service, r.count, r.avgProcessingMin!=null ? Number(r.avgProcessingMin.toFixed(1)) : 'N/A']),
+    [],
+    ['Total completed', agg.total],
+    ['Transferred tickets', agg.totalTransferred]
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryAoA), 'Summary');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Date','Completed'], ...agg.dayRows]), 'Daily Totals');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Counter','Completed'], ...agg.counterRows]), 'By Counter');
+  const rawHeader = ['Ticket','Service','Transaction Type','Counter','Transferred','Created','Called','Done','Processing (min)'];
+  const rawRows = rows.map(r => [
+    r.ticket, r.service, r.transactionType, r.counter, r.transferred ? 'Yes' : 'No',
+    r.createdAt ? r.createdAt.toLocaleString() : '',
+    r.calledAt ? r.calledAt.toLocaleString() : '',
+    r.doneAt ? r.doneAt.toLocaleString() : '',
+    (r.calledAt && r.doneAt) ? Number(((r.doneAt-r.calledAt)/60000).toFixed(1)) : ''
+  ]);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([rawHeader, ...rawRows]), 'Raw Data');
+  XLSX.writeFile(wb, `PRC_Starmills_Queue_Report_${startVal}_to_${endVal}.xlsx`);
+}
+
+function renderChartToImage(type, data, options, width, height){
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const chart = new Chart(canvas.getContext('2d'), { type, data, options: { ...options, animation:false, responsive:false } });
+  const img = canvas.toDataURL('image/png');
+  chart.destroy();
+  return img;
+}
+
+function downloadPdfReport(rows, agg, startVal, endVal){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'pt', format:'a4' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  let y = 90;
+
+  pdf.setFillColor(10,47,107);
+  pdf.rect(0,0,pageWidth,72,'F');
+  pdf.setTextColor(255,255,255);
+  pdf.setFontSize(15);
+  pdf.text('Professional Regulation Commission — Robinsons Starmills', 40, 28);
+  pdf.setFontSize(11);
+  pdf.text('Queue Performance Report', 40, 46);
+  pdf.setFontSize(9);
+  pdf.text(`${startVal} to ${endVal}`, 40, 62);
+  pdf.setTextColor(20,20,20);
+
+  const kpis = [
+    ['Total Completed', String(agg.total)],
+    ['Transferred', String(agg.totalTransferred)],
+    ['Busiest Service', agg.serviceRows[0] ? agg.serviceRows[0].service : 'N/A'],
+    ['Busiest Day', agg.dayRows.length ? agg.dayRows.reduce((a,b)=>b[1]>a[1]?b:a)[0] : 'N/A']
+  ];
+  let kx = 40;
+  const kpiW = (pageWidth - 80 - 30) / 4;
+  kpis.forEach(([label,val]) => {
+    pdf.setDrawColor(225,232,244); pdf.setFillColor(244,247,252);
+    pdf.roundedRect(kx, y, kpiW, 50, 6, 6, 'FD');
+    pdf.setFontSize(8); pdf.setTextColor(94,111,141);
+    pdf.text(label, kx+8, y+18);
+    pdf.setFontSize(12); pdf.setTextColor(10,47,107);
+    pdf.text(String(val).slice(0,18), kx+8, y+38);
+    kx += kpiW + 10;
+  });
+  y += 74;
+
+  pdf.setFontSize(11); pdf.setTextColor(10,47,107);
+  pdf.text('Key Insights', 40, y); y += 16;
+  pdf.setFontSize(9.5); pdf.setTextColor(40,40,40);
+  buildInsights(agg).forEach(line => {
+    const split = pdf.splitTextToSize(`•  ${line}`, pageWidth - 80);
+    pdf.text(split, 44, y); y += 14 * split.length;
+  });
+  y += 10;
+
+  if (agg.serviceRows.length) {
+    const serviceImg = renderChartToImage('bar', {
+      labels: agg.serviceRows.map(r=>r.service),
+      datasets: [{ label:'Completed', data: agg.serviceRows.map(r=>r.count), backgroundColor:'#0d5bc4' }]
+    }, { plugins:{legend:{display:false}}, scales:{x:{ticks:{font:{size:9}}}} }, 700, 260);
+    pdf.setFontSize(10); pdf.setTextColor(10,47,107);
+    pdf.text('Completed Transactions by Service', 40, y); y += 8;
+    pdf.addImage(serviceImg, 'PNG', 40, y, 500, 180);
+    y += 195;
+  }
+
+  if (y > 650) { pdf.addPage(); y = 40; }
+
+  if (agg.dayRows.length > 1) {
+    const dailyImg = renderChartToImage('line', {
+      labels: agg.dayRows.map(r=>r[0]),
+      datasets: [{ label:'Completed', data: agg.dayRows.map(r=>r[1]), borderColor:'#0a2f6b', backgroundColor:'rgba(13,91,196,0.15)', fill:true, tension:0.3 }]
+    }, { plugins:{legend:{display:false}} }, 700, 260);
+    pdf.setFontSize(10); pdf.setTextColor(10,47,107);
+    pdf.text('Daily Completed Transactions', 40, y); y += 8;
+    pdf.addImage(dailyImg, 'PNG', 40, y, 500, 180);
+    y += 200;
+  }
+
+  if (y > 600) { pdf.addPage(); y = 40; }
+
+  pdf.setFontSize(10); pdf.setTextColor(10,47,107);
+  pdf.text('Average Processing Time by Service', 40, y); y += 6;
+  pdf.autoTable({
+    startY: y,
+    head: [['Service','Completed','Avg Processing (min)']],
+    body: agg.serviceRows.map(r => [r.service, r.count, r.avgProcessingMin!=null ? r.avgProcessingMin.toFixed(1) : 'N/A']),
+    styles:{ fontSize:9 },
+    headStyles:{ fillColor:[10,47,107] },
+    margin:{ left:40, right:40 }
+  });
+
+  pdf.save(`PRC_Starmills_Queue_Report_${startVal}_to_${endVal}.pdf`);
+}
+
+document.getElementById('downloadExcelBtn').addEventListener('click', async () => {
+  reportsMessage.textContent = '⏳ Fetching data...';
+  try {
+    const { rows, startVal, endVal } = await fetchReportRows();
+    if (rows.length === 0) { reportsMessage.textContent = '⚠️ No completed transactions in that range.'; return; }
+    downloadWorkbook(rows, computeReportData(rows), startVal, endVal);
+    reportsMessage.textContent = `✅ Downloaded (${rows.length} transactions).`;
+    toast('✅ Excel report downloaded.', 'success');
+  } catch (err) { reportsMessage.textContent = '❌ ' + (err.message || 'Failed to generate report.'); }
+});
+document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+  reportsMessage.textContent = '⏳ Fetching data...';
+  try {
+    const { rows, startVal, endVal } = await fetchReportRows();
+    if (rows.length === 0) { reportsMessage.textContent = '⚠️ No completed transactions in that range.'; return; }
+    downloadPdfReport(rows, computeReportData(rows), startVal, endVal);
+    reportsMessage.textContent = `✅ Downloaded (${rows.length} transactions).`;
+    toast('✅ PDF report downloaded.', 'success');
+  } catch (err) { reportsMessage.textContent = '❌ ' + (err.message || 'Failed to generate report.'); }
+});
+
+// ---------- More Analytics (collapsed by default, bottom of page) ----------
+const analyticsGrid = document.getElementById('analyticsGrid');
+let unsubLongestWait = null;
+let activeCountersCount = 0, totalCountersCount = 0;
+let longestWaitTicket = null, totalWaitingCount = 0;
+let todayStats = null;
+let analyticsRefreshInterval = null;
+
+function formatMinutes(min) {
+  if (min == null) return '—';
+  if (min < 1) return '<1 min';
+  return `${min.toFixed(1)} min`;
+}
+
+// One-time-ish fetch (not a live listener) since it needs createdAt/calledAt/doneAt
+// math across today's completed tickets — re-run on an interval and after actions.
+async function refreshTodayStats() {
+  try {
+    const todayStr = getManilaDateString();
+    const rows = await getCompletedTicketsInRange(todayStr, todayStr);
+    let totalWaitMs = 0, waitCount = 0, totalProcMs = 0, procCount = 0;
+    const perCounter = {};
+    rows.forEach(r => {
+      if (r.createdAt && r.calledAt) { totalWaitMs += (r.calledAt - r.createdAt); waitCount++; }
+      if (r.calledAt && r.doneAt) { totalProcMs += (r.doneAt - r.calledAt); procCount++; }
+      const c = r.counter || 'Unassigned';
+      perCounter[c] = (perCounter[c] || 0) + 1;
+    });
+    let busiestCounter = 'N/A', busiestCount = 0;
+    Object.entries(perCounter).forEach(([c, n]) => { if (n > busiestCount) { busiestCount = n; busiestCounter = c; } });
+    todayStats = {
+      total: rows.length,
+      avgWaitMin: waitCount ? (totalWaitMs / waitCount / 60000) : null,
+      avgProcMin: procCount ? (totalProcMs / procCount / 60000) : null,
+      busiestCounter, busiestCount
+    };
+  } catch (e) { console.warn('refreshTodayStats failed', e); }
+  renderAnalytics();
+}
+
+function renderAnalytics() {
+  if (!analyticsGrid) return;
+  const tiles = [
+    ['Completed Today', todayStats ? todayStats.total : '—'],
+    ['Avg Wait Time', todayStats ? formatMinutes(todayStats.avgWaitMin) : '—'],
+    ['Avg Processing Time', todayStats ? formatMinutes(todayStats.avgProcMin) : '—'],
+    ['Busiest Counter Today', todayStats && todayStats.busiestCounter !== 'N/A' ? `${todayStats.busiestCounter} (${todayStats.busiestCount})` : '—'],
+    ['Active Counters', `${activeCountersCount} / ${totalCountersCount}`],
+    ['Clients Waiting Now', String(totalWaitingCount)],
+    ['Longest Waiting Now', longestWaitTicket ? `${longestWaitTicket.ticket} — ${timeAgo(longestWaitTicket.timestamp)}` : 'None waiting']
+  ];
+  analyticsGrid.innerHTML = '';
+  tiles.forEach(([label, value]) => {
+    const tile = document.createElement('div'); tile.className = 'analytics-tile';
+    tile.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>`;
+    analyticsGrid.appendChild(tile);
+  });
+}
+
+async function startAllListeners(){
+  cleanupStaleCounters().catch(()=>{});
+  loadServices();
+  await loadCounters();
+  unsubSummary = await listenWaitingSummary(renderSummary);
+  unsubPriorityWatch = await listenWaitingQueue('Priority Transaction', renderPriorityWatch);
+  unsubLongestWait = await listenWaitingQueue(null, tickets => {
+    totalWaitingCount = tickets.length;
+    longestWaitTicket = tickets.length ? tickets[0] : null;
+    renderAnalytics();
+  });
+  startDailyChartListener();
+  loadPreviousDayChart();
+  refreshTodayStats();
+  if (analyticsRefreshInterval) clearInterval(analyticsRefreshInterval);
+  analyticsRefreshInterval = setInterval(refreshTodayStats, 60000);
+}
+function stopAllListeners(){
+  if (unsubCounters) { unsubCounters(); unsubCounters = null; }
+  if (unsubCurrentCounter) { unsubCurrentCounter(); unsubCurrentCounter = null; }
+  if (unsubSummary) { unsubSummary(); unsubSummary = null; }
+  if (unsubPriorityWatch) { unsubPriorityWatch(); unsubPriorityWatch = null; }
+  if (unsubLongestWait) { unsubLongestWait(); unsubLongestWait = null; }
+  if (unsubDailyChart) { unsubDailyChart(); unsubDailyChart = null; }
+  if (unsubPrevChart) { unsubPrevChart(); unsubPrevChart = null; }
+  if (intervalDateTime) { clearInterval(intervalDateTime); intervalDateTime = null; }
+  if (analyticsRefreshInterval) { clearInterval(analyticsRefreshInterval); analyticsRefreshInterval = null; }
+  knownCounterIds = []; lastTicketSeen = null; lastCounts = {};
+  todayStats = null; longestWaitTicket = null; totalWaitingCount = 0; activeCountersCount = 0; totalCountersCount = 0;
+}
+
+// Enter = confirm, Escape = cancel, for modals with no input fields of their own
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    if (actionConfirmBackdrop.style.display === 'flex' && !actionConfirmBtn.disabled) { e.preventDefault(); actionConfirmBtn.click(); }
+    else if (logoutModal.style.display === 'flex') { e.preventDefault(); logoutConfirmBtn.click(); }
+  } else if (e.key === 'Escape') {
+    if (actionConfirmBackdrop.style.display === 'flex') { closeActionConfirm(); }
+    else if (logoutModal.style.display === 'flex') { closeLogoutModal(); }
+    else if (modalBackdrop.style.display === 'flex') { hideResetModal(); }
+    else if (addCounterBackdrop.style.display === 'flex') { hideAddCounterModal(); }
+    else if (deleteCounterBackdrop.style.display === 'flex') { hideDeleteCounterModal(); }
+    else if (transferBackdrop.style.display === 'flex') { hideTransferModal(); }
+    else if (reportsBackdrop.style.display === 'flex') { hideReportsModal(); }
+  }
+});
+
+window.addEventListener('load', ()=> {
+  document.querySelectorAll('.modal-backdrop').forEach(b => { b.style.display = 'none'; const m = b.querySelector('.modal'); if (m) { m.classList.remove('show'); m.classList.remove('closing'); } });
+  showLoginOverlay();
+});
+window.addEventListener('beforeunload', stopAllListeners);
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// PRC Region III Queue — Firestore Security Rules
+//
+// No Cloud Functions / no Firebase Auth. Read access is open (matches your
+// original Apps Script /exec URL, which had no auth either — the display
+// board and kiosk need to work with nobody logged in).
+//
+// The admin PIN ("Reset Queue", "Add Counter") is enforced HERE, not just in
+// the HTML, using a two-step pattern:
+//   1. Client writes to a write-only, unreadable "*Requests" collection with
+//      the entered PIN. The create is only allowed if it matches config/admin.
+//      Wrong PIN -> the write itself is rejected by Firestore (permission-denied).
+//   2. The real change (new counter / reset) is only allowed if it references
+//      an already-created, valid request document. The PIN itself is never
+//      stored on anything publicly readable.
+//
+// ⚠️ I could not test these rules against a live project (no Firebase access
+// from this environment). Please run through the Reset and Add Counter flows
+// once in a test project — and try them with a WRONG pin too — before relying
+// on this in production. The Firestore Rules Playground in the console is the
+// fastest way to check this in isolation.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Admin PIN, never publicly readable ----------
+    match /config/admin {
+      allow read: if false;
+      allow write: if false; // set this once manually via the console
+    }
+
+    // ---------- One-time system state: doubles as the "reset" ----------
+    // Resetting the queue = advancing activeCycle. Old queue docs simply stop
+    // matching the new cycle in every query — nothing is deleted.
+    match /systemState/current {
+      allow read: if true;
+      allow update: if
+        exists(/databases/$(database)/documents/resetRequests/$(request.resource.data.lastRequestId)) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeCycle','resetBy','resetAt','lastRequestId']);
+      allow create: if false; // seed this once manually via the console (activeCycle: 1)
+    }
+
+    // ---------- PIN verification collections (write-only) ----------
+    match /resetRequests/{requestId} {
+      allow read: if false;
+      allow create: if request.resource.data.pin == get(/databases/$(database)/documents/config/admin).data.pin;
+      allow update, delete: if false;
+    }
+    match /counterRequests/{requestId} {
+      allow read: if false;
+      allow create: if request.resource.data.pin == get(/databases/$(database)/documents/config/admin).data.pin;
+      allow update, delete: if false;
+    }
+    // Keyed by the counterId itself (not a random id) — a delete operation on
+    // counters/{counterId} has no request.resource to read a requestId from,
+    // so this lets the delete rule below check existence using only the path
+    // parameter, which IS available on delete.
+    match /counterDeleteRequests/{counterId} {
+      allow read: if false;
+      allow create: if request.resource.data.pin == get(/databases/$(database)/documents/config/admin).data.pin;
+      allow update, delete: if false;
+    }
+
+    // ---------- Counters (physical counter stations) ----------
+    match /counters/{counterId} {
+      allow read: if true;
+      // Everyday operations (call next / recall / mark done) — no PIN needed,
+      // same protection level (none) as your original callNext/markDone.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['status','ticket','service','transactionType','ticketId','recallCount','updatedAt']);
+      // Adding a NEW counter requires a valid prior counterRequests doc for this exact counterId.
+      allow create: if
+        exists(/databases/$(database)/documents/counterRequests/$(request.resource.data.requestId)) &&
+        get(/databases/$(database)/documents/counterRequests/$(request.resource.data.requestId)).data.counterId == counterId;
+      // Deleting requires a valid prior counterDeleteRequests doc for this exact counterId.
+      allow delete: if exists(/databases/$(database)/documents/counterDeleteRequests/$(counterId));
+    }
+
+    // ---------- Queue tickets ----------
+    match /queue/{ticketId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.status == 'Waiting' &&
+        request.resource.data.keys().hasAll(['ticket','service','transactionType','status','cycle','createdAt']);
+      // Only status/counter/calledAt/doneAt may change after creation — a client
+      // can't rewrite the ticket's service, type, or history.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['status','counter','calledAt','doneAt']);
+      allow delete: if false;
+    }
+
+    // ---------- Per-service, per-cycle ticket numbering ----------
+    match /serviceCounters/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.keys().hasOnly(['lastNumber']);
+    }
+
+    // ---------- Daily aggregate counts (for the charts) ----------
+    match /dailySummary/{date} {
+      allow read: if true;
+      allow write: if true; // increment-only aggregation, low risk — same as original DailySummary sheet
+    }
+
+    // ---------- Admin action log ----------
+    match /adminLogs/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}
